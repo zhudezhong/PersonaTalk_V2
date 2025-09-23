@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PersonaTalk – JS (No-CDN, GH Pages Ready)</title>
+  <!-- 说明：为解决 “Script error” (常见于 CDN/CSP 阻拦) ，本版本彻底去除外部依赖与内联模块加载，
+       仅使用原生 JS 实现同样的交互与测试用例。可直接作为 GitHub Pages 的 index.html 使用。 -->
+  <style>
+    :root{--border:#e5e7eb;--blue:#2563eb;--bg:#f5f7fb;--text:#111827}
+    *{box-sizing:border-box}
+    body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto;color:var(--text);background:var(--bg)}
+    header,main,footer{max-width:1000px;margin:0 auto;padding:12px 16px}
+    .title{font-size:18px;font-weight:700}
+    .grid{display:grid;grid-template-columns:1fr 2fr;gap:12px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .card-title{font-weight:600;margin-bottom:8px;font-size:14px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{border:1px solid var(--border);background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer}
+    .chip.active{border-color:var(--blue);background:#eff6ff}
+    .btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:6px 10px;cursor:pointer}
+    .btn.primary{background:var(--blue);color:#fff;border:none}
+    .tests{margin:8px 0 0 18px;font-size:12px}
+    .tests .pass{color:#059669}.tests .fail{color:#dc2626}
+    .chatbox{height:52vh;overflow:auto;padding-right:4px}
+    .bubble{max-width:80%;padding:10px 12px;border-radius:12px;margin:6px 0;white-space:pre-wrap}
+    .bubble.user{margin-left:auto;background:var(--blue);color:#fff}
+    .bubble.ai{margin-right:auto;background:#fff;border:1px solid var(--border)}
+    .by{opacity:.7;font-size:11px;margin-bottom:4px}
+    .skills{margin:6px 0 8px 0;border-top:1px solid var(--border);padding-top:6px;font-size:12px}
+    .block{margin-top:6px}.block-title{font-weight:600;margin-bottom:2px}
+    .composer{display:flex;gap:8px;margin-top:8px}
+    .composer textarea{flex:1;min-height:48px;border:1px solid var(--border);border-radius:10px;padding:8px}
+    .empty{font-size:12px;color:#9ca3af}
+    .meta{font-size:12px;color:#667085}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="title">🧭 PersonaTalk – JS MVP（无外部依赖）</div>
+      <div class="meta">为避免 CDN/CSP 触发的 “Script error”，本页完全使用原生 JS。未来接入真实 LLM/ASR/TTS 时，可按需替换 mockReply/发送逻辑。</div>
+    </header>
+
+    <main class="grid">
+      <!-- 左侧：设置 / 测试 -->
+      <section>
+        <div class="card">
+          <div class="card-title">设置</div>
+          <div class="meta">角色</div>
+          <div id="chips" class="chips" style="margin-top:6px"></div>
+          <div id="styleMeta" class="meta" style="margin-top:6px"></div>
+          <!-- 未来可在此处添加 Provider/API Key/ASR/TTS 的设置表单（本版不联网、不外链） -->
+        </div>
+
+        <div class="card">
+          <div class="card-title">测试用例 (Mock)</div>
+          <button id="runTests" class="btn">运行测试</button>
+          <ul id="tests" class="tests"></ul>
+        </div>
+      </section>
+
+      <!-- 右侧：聊天 -->
+      <section>
+        <div class="card">
+          <div id="chatTitle" class="card-title"></div>
+          <div id="chatbox" class="chatbox"></div>
+          <div class="composer">
+            <textarea id="input" placeholder="输入消息…"></textarea>
+            <button id="send" class="btn primary">发送</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="meta" style="text-align:center">PersonaTalk © 2025 · JS 版（GH Pages 友好，零外部依赖）。</footer>
+  </div>
+
+  <script>
+  (function(){
+    // ─────────────────────────────────────────────────────────────────────
+    // 状态 & 预设
+    var state = {
+      role: 'harry',
+      messages: [], // {role:'user'|'assistant', content, skills?}
+      presets: {
+        harry:   { id:'harry',   name:'哈利·波特', avatar:'🪄', style:'温暖、勇敢、少年口吻；不引用受版权保护的原文台词。', extraKey:'script' },
+        socrates:{ id:'socrates', name:'苏格拉底',   avatar:'🏛️', style:'简洁反诘，层层追问，帮助澄清观点。',               extraKey:'rebuttal_tree' },
+        sherlock:{ id:'sherlock', name:'福尔摩斯',   avatar:'🕵️‍♂️', style:'冷静、观察入微、逻辑严谨，输出可验证线索。',         extraKey:'clues' }
+      }
+    };
+
+    // DOM 缓存
+    var el = {
+      chips: document.getElementById('chips'),
+      styleMeta: document.getElementById('styleMeta'),
+      chatTitle: document.getElementById('chatTitle'),
+      chatbox: document.getElementById('chatbox'),
+      input: document.getElementById('input'),
+      send: document.getElementById('send'),
+      runTests: document.getElementById('runTests'),
+      tests: document.getElementById('tests')
+    };
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 业务逻辑
+    function mockReply(role, text){
+      var base = {
+        bullets: ['发音/用词建议：优先清晰与简洁','复述示范：尝试用更自然的表达'],
+        action_items: ['下一步：用三句话复述观点','提出一个反问题'],
+        key_terms: ['关键词示例A','关键词示例B']
+      };
+      if(role==='harry'){
+        return {
+          text: '【哈利·波特】收到：' + text + '\n' + '勇敢点，我们一步步来。给你一个小片段~',
+          skills: assign({}, base, { extra:{ script:'【走廊】“我们得快点！”——“别慌，先找线索。”' } })
+        };
+      }
+      if(role==='socrates'){
+        return {
+          text: '【苏格拉底】关于「' + text + '」，先思考三个问题：你为何如此认为？若相反是否成立？你使用的定义是否一致？',
+          skills: assign({}, base, { extra:{ rebuttal_tree:['你为何如此认为？','若相反观点成立，会发生什么？','你所用的定义是否一致？'] } })
+        };
+      }
+      if(role==='sherlock'){
+        return {
+          text: '【福尔摩斯】分析「' + text + '」。我会列出线索并提出可验证的假设。',
+          skills: assign({}, base, { extra:{ clues:[{fact:'门把手上有泥点', hypo:'来访者刚从后院进入'},{fact:'脚印方向相反', hypo:'离开与进入不同步'}] } })
+        };
+      }
+      return { text: '收到：' + text, skills: base };
+    }
+
+    function sendText(t){
+      var text = (t==null? "": String(t)).trim();
+      if(!text) return false; // 空输入不发送
+      state.messages.push({ role:'user', content:text });
+      var res = mockReply(state.role, text);
+      state.messages.push({ role:'assistant', content:res.text, skills:res.skills });
+      renderMessages();
+      return true;
+    }
+
+    function switchRole(role){
+      if(!state.presets[role]) return;
+      state.role = role;
+      renderHeader();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 渲染
+    function renderHeader(){
+      var p = state.presets[state.role];
+      // 渲染角色 chips
+      var chipsHtml = Object.keys(state.presets).map(function(key){
+        var it = state.presets[key];
+        return '<button data-role="' + it.id + '" class="chip ' + (state.role===it.id? 'active':'') + '">' + it.avatar + ' ' + it.name + '</button>';
+      }).join('');
+      el.chips.innerHTML = chipsHtml;
+      // 风格
+      el.styleMeta.textContent = '风格：' + p.style;
+      // 聊天标题
+      el.chatTitle.textContent = p.avatar + ' ' + p.name;
+    }
+
+    function renderMessages(){
+      if(!state.messages.length){
+        el.chatbox.innerHTML = '<div class="empty">开始对话吧：例如输入“帮我做口语纠错”或“给我要点总结”。</div>';
+        return;
+      }
+      var html = '';
+      for(var i=0;i<state.messages.length;i++){
+        var m = state.messages[i];
+        var name = (m.role==='user')? '你' : state.presets[state.role].name;
+        var head = '<div class="bubble ' + (m.role==='user'?'user':'ai') + '">' +
+                   '<div class="by">' + name + '</div>' +
+                   '<pre class="content">' + escapeHtml(m.content) + '</pre>' +
+                   '</div>';
+        var block = '';
+        if(m.skills){
+          var s = m.skills || {}; var ex = s.extra || {};
+          block += '<div class="skills">';
+          if(s.bullets && s.bullets.length){
+            block += '<div class="block"><div class="block-title">• 要点</div><ul>' + s.bullets.map(li).join('') + '</ul></div>';
+          }
+          if(s.action_items && s.action_items.length){
+            block += '<div class="block"><div class="block-title">• 下一步</div><ul>' + s.action_items.map(li).join('') + '</ul></div>';
+          }
+          if(s.key_terms && s.key_terms.length){
+            block += '<div class="block"><span class="block-title">• 关键词：</span>' + s.key_terms.map(escapeHtml).join(', ') + '</div>';
+          }
+          if(ex.script){ block += '<div class="block"><span class="block-title">• 小剧本：</span>' + escapeHtml(ex.script) + '</div>'; }
+          if(Array.isArray(ex.clues) && ex.clues.length){
+            block += '<div class="block"><div class="block-title">• 线索板：</div><ul>' + ex.clues.map(function(c){
+              return '<li><b>事实</b> ' + escapeHtml(c.fact) + ' → <b>假设</b> ' + escapeHtml(c.hypo) + '</li>';
+            }).join('') + '</ul></div>';
+          }
+          if(Array.isArray(ex.rebuttal_tree) && ex.rebuttal_tree.length){
+            block += '<div class="block"><div class="block-title">• 反诘问题树：</div><ul>' + ex.rebuttal_tree.map(li).join('') + '</ul></div>';
+          }
+          block += '</div>';
+        }
+        html += '<div>' + head + (m.skills? block: '') + '</div>';
+      }
+      el.chatbox.innerHTML = html;
+      el.chatbox.scrollTop = el.chatbox.scrollHeight;
+    }
+
+    function renderAll(){
+      renderHeader();
+      renderMessages();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 工具函数
+    function assign(target){
+      for(var i=1;i<arguments.length;i++){
+        var src = arguments[i] || {};
+        for(var k in src){ if(Object.prototype.hasOwnProperty.call(src,k)){ target[k] = src[k]; } }
+      }
+      return target;
+    }
+    function escapeHtml(str){
+      return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+    function li(t){ return '<li>' + escapeHtml(t) + '</li>'; }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 事件绑定
+    el.chips.addEventListener('click', function(e){
+      var role = e.target && e.target.getAttribute('data-role');
+      if(role){ switchRole(role); }
+    });
+    el.send.addEventListener('click', function(){
+      var ok = sendText(el.input.value);
+      if(ok) el.input.value = '';
+    });
+    el.input.addEventListener('keydown', function(e){
+      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+        var ok = sendText(el.input.value);
+        if(ok) el.input.value = '';
+      }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 测试（保留既有 6 条，再新增 3 条）
+    function runTests(){
+      var cases = [
+        // 现有语义一致的 6 条
+        { name:'Harry returns script', run:function(){ var r=mockReply('harry','t'); return r.skills && r.skills.extra && !!r.skills.extra.script; } },
+        { name:'Socrates returns rebuttal tree', run:function(){ var r=mockReply('socrates','t'); return r.skills && r.skills.extra && Array.isArray(r.skills.extra.rebuttal_tree); } },
+        { name:'Sherlock returns clues', run:function(){ var r=mockReply('sherlock','t'); return r.skills && r.skills.extra && Array.isArray(r.skills.extra.clues) && r.skills.extra.clues.length>0; } },
+        { name:'Common fields present', run:function(){ var r=mockReply(state.role,'t'); return Array.isArray(r.skills && r.skills.bullets) && Array.isArray(r.skills && r.skills.action_items) && Array.isArray(r.skills && r.skills.key_terms); } },
+        { name:'Presets length = 3', run:function(){ return Object.keys(state.presets).length===3; } },
+        { name:'Mock fallback returns base', run:function(){ var r=mockReply('unknown','x'); return Array.isArray(r.skills && r.skills.bullets) && r.text.indexOf('收到')===0; } },
+        // 新增 3 条
+        { name:'Send adds user & assistant', run:function(){ var baseLen=state.messages.length; sendText('hi'); return state.messages.length===baseLen+2 && state.messages[baseLen].role==='user' && state.messages[baseLen+1].role==='assistant'; } },
+        { name:'Empty input ignored', run:function(){ var before=state.messages.length; sendText('   '); return state.messages.length===before; } },
+        { name:'Switch role updates title', run:function(){ switchRole('socrates'); return /苏格拉底/.test(el.chatTitle.textContent || ''); } }
+      ];
+      var results = cases.map(function(c){ return { name:c.name, pass:!!c.run() }; });
+      el.tests.innerHTML = results.map(function(r){ return '<li class="' + (r.pass?'pass':'fail') + '\">' + (r.pass?'✔':'✘') + ' ' + r.name + '</li>'; }).join('');
+      return results;
+    }
+
+    el.runTests.addEventListener('click', runTests);
+
+    // 初始渲染
+    renderAll();
+
+    // 将少量方法暴露给 window，便于后续接 LL M/ASR/TTS 或调试
+    window.__app = {
+      state: state,
+      mockReply: mockReply,
+      sendText: sendText,
+      switchRole: switchRole,
+      runTests: runTests
+    };
+  })();
+  </script>
+</body>
+</html>

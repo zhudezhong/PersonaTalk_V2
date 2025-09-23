@@ -1,24 +1,170 @@
 <script setup lang="ts">
-
 import PersonalCard from "@/components/PersonalCard.vue";
+import CusButton from "@/components/CusButton.vue";
+import { ref } from 'vue';
+
+const isExpanded = ref(false);
+const message = ref('');
+
+// 处理发送消息
+const handleSend = () => {
+  if (message.value.trim()) {
+    console.log('发送消息:', message.value);
+
+    message.value = '';
+    isExpanded.value = false;
+  }
+};
+
+// 处理键盘回车
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter') {
+    handleSend();
+  }
+};
 </script>
 
 <template>
   <div class="container">
-    <PersonalCard/>
-    <PersonalCard/>
-    <PersonalCard/>
+    <div class="card-list">
+      <PersonalCard/>
+      <PersonalCard/>
+      <PersonalCard/>
+    </div>
+    <div class="footer-button">
+      <CusButton buttonText="自定义角色" :speed="1.5"/>
+      <CusButton buttonText="文本聊天" :speed="1.5"/>
+    </div>
+
+
+    <div
+      class="message-talk"
+      :class="{ 'expanded': isExpanded }"
+      @click.stop
+    >
+      <div class="message-circle" @click="isExpanded = !isExpanded">
+        <span v-if="!isExpanded">@</span>
+        <span v-if="isExpanded">✕</span>
+      </div>
+
+      <div class="input-container" v-if="isExpanded">
+        <input
+          type="text"
+          v-model="message"
+          placeholder="输入消息..."
+          @keydown="handleKeyDown"
+          ref="messageInput"
+          @click.stop
+        >
+        <button class="send-btn" @click="handleSend">发送</button>
+      </div>
+    </div>
+
+
   </div>
 
 </template>
 
 <style scoped>
 .container {
-  margin: 100px auto;
+  margin: 300px auto;
   width: 650px;
-  height: 600px;
+  position: relative;
+}
+
+.card-list {
+  width: 100%;
   display: flex;
+  height: 80%;
   justify-content: space-around;
   align-items: center;
+}
+
+.footer-button {
+  margin-top: 50px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.message-talk {
+  width: 40px;
+  cursor: pointer;
+  color: #333;
+  position: absolute;
+  bottom: -300px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all .5s ease;
+  padding: 3px;
+  border-radius: 30px;
+  border: 2px solid #ffffff;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: transparent;
+}
+
+.message-talk.expanded {
+  width: 700px;
+  background-color: #f6f6f6;
+  border: 2px solid #555555;
+  padding: 8px 15px;
+}
+
+.message-circle {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  line-height: 40px;
+  background-color: #333333;
+  transition: all .5s;
+  color: white;
+  flex-shrink: 0;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: all .3s ease;
+}
+
+.message-talk.expanded .input-container {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.input-container input {
+  flex-grow: 1;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  outline: none;
+  font-size: 14px;
+}
+
+.input-container input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.send-btn {
+  padding: 8px 18px;
+  background-color: #333;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color .3s;
+}
+
+.send-btn:hover {
+  background-color: #555;
 }
 </style>

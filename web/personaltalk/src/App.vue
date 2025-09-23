@@ -21,7 +21,7 @@ export default {
 
       const primary = '#fcf0ff';
 
-      const secondary = 'hsl(294,100%,92%)';
+      const secondary = 'hsl(295,100%,96%)';
       const edge = '#f8ccfb';
 
       document.body.style.setProperty('--color1', primary);

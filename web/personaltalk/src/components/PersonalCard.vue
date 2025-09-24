@@ -89,7 +89,7 @@
   transition: all 1s;
 }
 
-.info-main:hover .character-desc{
+.info-main:hover .character-desc {
   opacity: 1;
 }
 
@@ -103,26 +103,43 @@
   z-index: 1;
 }
 
-.begin-talk{
+.begin-talk {
   position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 99;
-  color: #fff;
-  width: 100px;
-  height: 30px;
-  border: 1px solid #d5d5d5;
   font-size: 14px;
   text-align: center;
   line-height: 30px;
+  transition: all .5s;
+  width: 100px;
+  height: 30px;
   border-radius: 15px;
+  border: 1px solid #ffffff;
+  color: #fff;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.begin-talk::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 500px;
+  background-color: #bababa;
+  transform: rotate(-45deg);
+  left: 20px;
+  top: -180px;
   transition: all .5s;
 }
 
-.begin-talk:hover{
-  background-color: #d8d8d8;
-  border: 1px solid #303030;
-  color: #4a4a4a;
+.begin-talk:hover::after{
+  top: -350px;
+  left: 10px;
+}
+
+.info-main:hover .begin-talk {
+  opacity: 1;
 }
 </style>

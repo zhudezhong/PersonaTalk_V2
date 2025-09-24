@@ -1,5 +1,8 @@
 <template>
   <div style="position: relative;width: 100%;height: 100%;overflow: hidden">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="circle3"></div>
     <router-view/>
   </div>
 </template>
@@ -20,8 +23,7 @@ export default {
 
 
       const primary = '#fcf0ff';
-
-      const secondary = 'hsl(294,100%,92%)';
+      const secondary = 'hsl(295,100%,96%)';
       const edge = '#f8ccfb';
 
       document.body.style.setProperty('--color1', primary);
@@ -72,4 +74,72 @@ export default {
 
 <style scoped>
 
+.circle1 {
+  width: 1200px;
+  height: 1200px;
+  top: -100px;
+  /* 水平居中设置 */
+  left: 50%;
+  transform: translateX(-50%);
+  border: 2px solid #ffffff;
+  position: absolute;
+  border-radius: 50%;
+  animation: small 8s infinite ease-in-out;
+}
+
+@keyframes small {
+  0% {
+    transform: translateX(-50%) scale(1); /* 保留居中的同时添加缩放 */
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(0.95);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.circle2 {
+  width: 800px;
+  height: 800px;
+  top: 100px;
+  /* 水平居中设置 */
+  left: 50%;
+  transform: translateX(-50%);
+  border: 2px solid #ffffff;
+  position: absolute;
+  border-radius: 50%;
+  animation: pulse 6s infinite ease-in-out 0.5s;
+}
+
+.circle3 {
+  width: 500px;
+  height: 500px;
+  top: 250px;
+  /* 水平居中设置 */
+  left: 50%;
+  transform: translateX(-50%);
+  border: 2px solid #ffffff;
+  position: absolute;
+  border-radius: 50%;
+  animation: pulse 4s infinite ease-in-out 1s;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateX(-50%) scale(1); /* 保留居中的同时添加缩放 */
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
 </style>

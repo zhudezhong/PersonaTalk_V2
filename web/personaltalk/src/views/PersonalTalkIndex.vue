@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import PersonalCard from "@/components/PersonalCard.vue";
 import CusButton from "@/components/CusButton.vue";
-import { ref } from 'vue';
+import {ref} from 'vue';
+import ChatBox from "@/components/ChatBox.vue";
+import eventBus from '@/utils/eventBus'
 
 const isExpanded = ref(false);
 const message = ref('');
@@ -11,8 +13,24 @@ const handleSend = () => {
   if (message.value.trim()) {
     console.log('发送消息:', message.value);
 
+    eventBus.emit('question-message', {
+      content: message.value,
+      isQuestion: true,
+    })
+
+    // todo:此处发送请求给后端，可考虑通过socket进行通信
+
+    if (message.value) {
+      //  模拟后端回复信息，测试前端效果
+      eventBus.emit('answer-message', {
+        content: '思考中...',
+        isQuestion: false,
+      })
+    }
+
+
     message.value = '';
-    isExpanded.value = false;
+
   }
 };
 
@@ -26,16 +44,20 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 <template>
   <div class="container">
-    <div class="card-list">
-      <PersonalCard/>
-      <PersonalCard/>
-      <PersonalCard/>
-    </div>
-    <div class="footer-button">
-      <CusButton buttonText="自定义角色" :speed="1.5"/>
-      <CusButton buttonText="文本聊天" :speed="1.5"/>
-    </div>
-
+    <template v-if="!isExpanded">
+      <div class="card-list">
+        <PersonalCard/>
+        <PersonalCard/>
+        <PersonalCard/>
+      </div>
+      <div class="footer-button">
+        <CusButton buttonText="自定义角色" :speed="1.5"/>
+        <CusButton buttonText="文本聊天" :speed="1.5"/>
+      </div>
+    </template>
+    <template v-else>
+      <ChatBox :show="isExpanded"/>
+    </template>
 
     <div
       class="message-talk"
@@ -43,7 +65,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
       @click.stop
     >
       <div class="message-circle" @click="isExpanded = !isExpanded">
-        <span v-if="!isExpanded">@</span>
+        <span v-if="!isExpanded">icon</span>
         <span v-if="isExpanded">✕</span>
       </div>
 
@@ -59,7 +81,6 @@ const handleKeyDown = (e: KeyboardEvent) => {
         <button class="send-btn" @click="handleSend">发送</button>
       </div>
     </div>
-
 
   </div>
 
@@ -91,8 +112,8 @@ const handleKeyDown = (e: KeyboardEvent) => {
   width: 40px;
   cursor: pointer;
   color: #333;
-  position: absolute;
-  bottom: -300px;
+  position: fixed;
+  bottom: 50px;
   left: 50%;
   transform: translateX(-50%);
   transition: all .5s ease;
@@ -110,7 +131,8 @@ const handleKeyDown = (e: KeyboardEvent) => {
   width: 700px;
   background-color: #f6f6f6;
   border: 2px solid #555555;
-  padding: 8px 15px;
+  padding: 8px 10px;
+  overflow: hidden;
 }
 
 .message-circle {
@@ -131,8 +153,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
   gap: 10px;
   width: 100%;
   opacity: 0;
+  height: 40px;
   transform: translateX(-20px);
   transition: all .3s ease;
+  overflow: hidden;
 }
 
 .message-talk.expanded .input-container {

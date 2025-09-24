@@ -1,12 +1,84 @@
 <script setup lang="ts">
 import PersonalCard from "@/components/PersonalCard.vue";
 import CusButton from "@/components/CusButton.vue";
-import {ref} from 'vue';
+import {onMounted, onUnmounted, onUpdated, ref} from 'vue';
 import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
+import HistorySession from "@/components/HistorySession.vue";
 
 const isExpanded = ref(false);
 const message = ref('');
+const historyList = ref([]);
+
+const handleCreateNewSession = () => {
+  isExpanded.value = true;
+}
+
+const sessionId = ref(null);
+
+const openHistorySession = (item: any) => {
+  isExpanded.value = true;
+  sessionId.value = item.Id;
+}
+
+eventBus.on('createNewSession', handleCreateNewSession)
+eventBus.on('openHistorySession', openHistorySession)
+
+
+onMounted(() => {
+  //todo:获取历史聊天记录
+  historyList.value = [
+    {
+      listName: '历史记录',
+      Id: '1'
+    },
+    {
+      listName: '新的记录',
+      Id: '2'
+    },
+    {
+      listName: '新的记录',
+      Id: '3'
+    },
+    {
+      listName: '新的记录',
+      Id: 's4'
+    },
+    {
+      listName: '新的记录',
+      Id: '5'
+    },
+    {
+      listName: '新的记录',
+      Id: '6'
+    },
+    {
+      listName: '新的记录',
+      Id: '7'
+    },
+    {
+      listName: '新的记录',
+      Id: '8'
+    },
+    {
+      listName: '新的记录',
+      Id: '9'
+    }
+  ]
+
+  console.log(historyList.value)
+})
+
+// 组件卸载时移除监听（避免内存泄漏）
+onUnmounted(() => {
+  eventBus.off('createNewSession', handleCreateNewSession)
+  eventBus.off('openHistorySession', openHistorySession)
+})
+
+const handleChatClick = () => {
+  isExpanded.value = true
+  sessionId.value = null
+}
 
 // 处理发送消息
 const handleSend = () => {
@@ -43,6 +115,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
 </script>
 
 <template>
+  <div class="history-session">
+    <HistorySession :history-list="historyList"/>
+
+  </div>
   <div class="container">
     <template v-if="!isExpanded">
       <div class="card-list">
@@ -56,7 +132,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
       </div>
     </template>
     <template v-else>
-      <ChatBox :show="isExpanded"/>
+      <ChatBox :show="isExpanded" :load-session="sessionId"/>
     </template>
 
     <div
@@ -64,9 +140,11 @@ const handleKeyDown = (e: KeyboardEvent) => {
       :class="{ 'expanded': isExpanded }"
       @click.stop
     >
-      <div class="message-circle" @click="isExpanded = !isExpanded">
-        <span v-if="!isExpanded">icon</span>
-        <span v-if="isExpanded">✕</span>
+      <div class="message-circle">
+        <span v-if="!isExpanded" @click="handleChatClick"
+              style="display: block;width: 100%;height: 100%">icon</span>
+        <span v-if="isExpanded" @click="isExpanded = false"
+              style="display: block;width: 100%;height: 100%">✕</span>
       </div>
 
       <div class="input-container" v-if="isExpanded">
@@ -87,6 +165,13 @@ const handleKeyDown = (e: KeyboardEvent) => {
 </template>
 
 <style scoped>
+
+.history-session {
+  position: fixed;
+  left: 20px;
+  top: 50px;
+}
+
 .container {
   margin: 300px auto;
   width: 650px;
@@ -157,6 +242,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
   transform: translateX(-20px);
   transition: all .3s ease;
   overflow: hidden;
+  padding-left: 5px;
 }
 
 .message-talk.expanded .input-container {
@@ -175,7 +261,6 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 .input-container input:focus {
   border-color: #3B82F6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .send-btn {

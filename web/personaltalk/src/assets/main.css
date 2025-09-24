@@ -37,3 +37,70 @@ a,
   #app {
   }
 }
+
+/* 全局滚动条样式（适用于整个页面） */
+::-webkit-scrollbar {
+  /* 滚动条宽度 */
+  width: 6px;
+  height: 6px;
+}
+
+/* 滚动条轨道 */
+::-webkit-scrollbar-track {
+  border-radius: 4px;
+}
+
+/* 滚动条滑块 */
+::-webkit-scrollbar-thumb {
+  background: #cccccc;
+  opacity: .5;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+/* 滚动条滑块悬停状态 */
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 滚动条滑块激活状态（点击时） */
+::-webkit-scrollbar-thumb:active {
+  background: #888888;
+}
+
+/* 针对特定容器的滚动条样式（不影响全局） */
+.custom-scrollbar {
+  /* 确保容器可滚动 */
+  overflow: auto;
+  max-height: 300px; /* 示例高度 */
+}
+
+/* 特定容器的滚动条样式 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f9f9f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b1b1b1;
+}
+
+/* 隐藏滚动条但保留滚动功能（适用于需要隐藏但可滚动的场景） */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 和 Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari 和 Opera */
+}
+

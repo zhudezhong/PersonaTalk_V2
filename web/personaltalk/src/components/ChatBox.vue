@@ -1,5 +1,5 @@
 <script setup>
-import {defineProps, onUnmounted, ref} from 'vue'
+import {defineProps, onMounted, onUnmounted, ref, nextTick, watch} from 'vue'
 import eventBus from "@/utils/eventBus.js";
 
 // 定义接收的props
@@ -7,22 +7,126 @@ const props = defineProps({
   show: {
     type: Boolean,
     required: true
+  },
+  loadSession: {
+    type: String,
+    required: false
   }
 })
 
-const messageList = ref([{
-  content: '您好，有什么可以帮助您的😊',
-  isQuestion: false,
-}])
+const messageList = ref([])
+const chatContainer = ref(null)
+const showScrollButton = ref(false)
+const buttonOpacity = ref(0) // 按钮透明度，用于淡入淡出效果
+let scrollAnimation = null
+
+onMounted(() => {
+  console.log(props.loadSession)
+  if (!props.loadSession) {
+    messageList.value = [{
+      content: '您好，有什么可以帮助您的😊',
+      isQuestion: false,
+    }]
+  } else {
+    console.log('可以根据id从本地存储中寻找聊天数据')
+  }
+
+  // 监听滚动事件
+  if (chatContainer.value) {
+    chatContainer.value.addEventListener('scroll', handleScroll)
+  }
+})
+
+// 监听showScrollButton变化，触发淡入淡出动画
+watch(showScrollButton, (newVal) => {
+  if (newVal) {
+    // 淡入动画
+    buttonOpacity.value = 0
+    const fadeIn = () => {
+      buttonOpacity.value += 0.1
+      if (buttonOpacity.value < 1) {
+        requestAnimationFrame(fadeIn)
+      } else {
+        buttonOpacity.value = 1
+      }
+    }
+    requestAnimationFrame(fadeIn)
+  } else {
+    // 淡出动画
+    const fadeOut = () => {
+      buttonOpacity.value -= 0.1
+      if (buttonOpacity.value > 0) {
+        requestAnimationFrame(fadeOut)
+      } else {
+        buttonOpacity.value = 0
+      }
+    }
+    requestAnimationFrame(fadeOut)
+  }
+})
+
+// 处理滚动事件，控制回到底部按钮的显示/隐藏
+const handleScroll = () => {
+  if (chatContainer.value) {
+    // 当滚动距离顶部超过容器高度的一半时显示按钮
+    const scrollTop = chatContainer.value.scrollTop
+    const scrollHeight = chatContainer.value.scrollHeight
+    const clientHeight = chatContainer.value.clientHeight
+
+    // 避免频繁触发动画
+    const shouldShow = scrollTop + clientHeight < scrollHeight - 200
+    if (shouldShow !== showScrollButton.value) {
+      showScrollButton.value = shouldShow
+    }
+  }
+}
+
+// 平滑滚动到聊天底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatContainer.value) {
+      // 取消任何正在进行的动画
+      if (scrollAnimation) {
+        cancelAnimationFrame(scrollAnimation)
+      }
+
+      const targetPosition = chatContainer.value.scrollHeight
+      const startPosition = chatContainer.value.scrollTop
+      const distance = targetPosition - startPosition
+      const duration = 500 // 动画持续时间，毫秒
+      const startTime = performance.now()
+
+      // 使用requestAnimationFrame实现平滑滚动
+      const animateScroll = (currentTime) => {
+        const timeElapsed = currentTime - startTime
+        // 使用easeOutQuad缓动函数使滚动更自然
+        const progress = Math.min(timeElapsed / duration, 1)
+        const easeProgress = 1 - (1 - progress) * (1 - progress)
+
+        chatContainer.value.scrollTop = startPosition + distance * easeProgress
+
+        if (timeElapsed < duration) {
+          scrollAnimation = requestAnimationFrame(animateScroll)
+        } else {
+          scrollAnimation = null
+        }
+      }
+
+      scrollAnimation = requestAnimationFrame(animateScroll)
+    }
+  })
+}
 
 const handleQuestionMessage = (args) => {
   messageList.value.push(args)
-  console.log('messageList.value', messageList.value)
+  // 新消息添加后自动滚动到底部
+  scrollToBottom()
 }
 
 const handleAnswerMessage = (args) => {
   messageList.value.push(args)
-  console.log('messageList.value', messageList.value)
+  // 新消息添加后自动滚动到底部
+  scrollToBottom()
 }
 
 
@@ -32,6 +136,13 @@ eventBus.on('question-message', handleQuestionMessage)
 // 组件卸载时移除监听（避免内存泄漏）
 onUnmounted(() => {
   eventBus.off('question-message', handleQuestionMessage)
+  if (chatContainer.value) {
+    chatContainer.value.removeEventListener('scroll', handleScroll)
+  }
+  // 清除动画
+  if (scrollAnimation) {
+    cancelAnimationFrame(scrollAnimation)
+  }
 })
 
 
@@ -48,28 +159,87 @@ onUnmounted(() => {
 
 <template>
   <Transition :duration="550" name="nested">
-    <div v-if="show" class="chat-box">
-      <div class="message-container" v-for="(msg, index) in messageList" :key="index">
+    <div>
+      <div v-if="show" class="chat-box" ref="chatContainer">
+        <div class="message-container" v-for="(msg, index) in messageList" :key="index">
         <span :class="msg.isQuestion ? 'question-class' : 'answer-class'">
           {{ msg.content }}
         </span>
+        </div>
       </div>
+
+      <!-- 回到底部按钮 - 添加了淡入淡出效果 -->
+      <button
+        v-if="showScrollButton || buttonOpacity > 0"
+        class="scroll-to-bottom-btn"
+        @click="scrollToBottom"
+        :class="{ 'scrolling': scrollAnimation }"
+        :style="{ opacity: buttonOpacity }"
+      >
+        👇
+      </button>
     </div>
   </Transition>
 </template>
 
 <style>
-.chat-box, .inner {
+.chat-box {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   margin: -250px auto;
   width: 800px;
-  height: 950px;
-  padding: 30px;
+  height: 800px;
   min-height: 100px;
   display: flex;
   flex-direction: column;
+  overflow-y: scroll;
+  /* 为按钮留出空间 */
+  padding: 30px 30px 70px;
+}
+
+/* 回到底部按钮样式 */
+.scroll-to-bottom-btn {
+  position: fixed;
+  bottom: 150px;
+  right: 50%;
+  transform: translateX(50%);
+  background-color: #333333;
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  border: 2px solid #aeaeae;
+  /* 确保透明度变化平滑 */
+  transition: opacity 0.3s ease;
+}
+
+.scroll-to-bottom-btn:hover {
+  background-color: #636363;
+  transform: translateX(50%) scale(1.1);
+}
+
+/* 滚动中按钮动画 */
+.scroll-to-bottom-btn.scrolling {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateX(50%) scale(1);
+  }
+  50% {
+    transform: translateX(50%) scale(1.1);
+  }
+  100% {
+    transform: translateX(50%) scale(1);
+  }
 }
 
 .nested-enter-active, .nested-leave-active {

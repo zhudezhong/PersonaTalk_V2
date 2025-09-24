@@ -1,12 +1,26 @@
 <script setup lang="ts">
 import PersonalCard from "@/components/PersonalCard.vue";
 import CusButton from "@/components/CusButton.vue";
-import {ref} from 'vue';
+import {onUnmounted, ref} from 'vue';
 import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
+import HistorySession from "@/components/HistorySession.vue";
 
 const isExpanded = ref(false);
 const message = ref('');
+
+const handleCreateNewSession = () => {
+  isExpanded.value = true;
+}
+
+
+eventBus.on('createNewSession', handleCreateNewSession)
+
+// 组件卸载时移除监听（避免内存泄漏）
+onUnmounted(() => {
+  eventBus.off('createNewSession', handleCreateNewSession)
+})
+
 
 // 处理发送消息
 const handleSend = () => {
@@ -43,6 +57,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
 </script>
 
 <template>
+  <div class="history-session">
+    <HistorySession/>
+
+  </div>
   <div class="container">
     <template v-if="!isExpanded">
       <div class="card-list">
@@ -87,6 +105,13 @@ const handleKeyDown = (e: KeyboardEvent) => {
 </template>
 
 <style scoped>
+
+.history-session {
+  position: fixed;
+  left: 20px;
+  top: 50px;
+}
+
 .container {
   margin: 300px auto;
   width: 650px;
@@ -157,6 +182,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
   transform: translateX(-20px);
   transition: all .3s ease;
   overflow: hidden;
+  padding-left: 5px;
 }
 
 .message-talk.expanded .input-container {
@@ -175,7 +201,6 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 .input-container input:focus {
   border-color: #3B82F6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .send-btn {

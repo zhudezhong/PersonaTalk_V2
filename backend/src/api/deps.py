@@ -27,11 +27,26 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def create_tables():
-    """创建数据库表"""
+    """创建数据库表（如果不存在）"""
     try:
         async with engine.begin() as conn:
-            await conn.run_sync(SQLModel.metadata.create_all)
-        logger.info("数据库表创建成功")
+            # 使用异步方式检查表是否存在
+            from sqlalchemy import text, inspect
+            
+            # 获取数据库中现有的表名
+            result = await conn.execute(text("SHOW TABLES"))
+            existing_tables = [row[0] for row in result.fetchall()]
+            
+            # 获取需要创建的表名
+            required_tables = list(SQLModel.metadata.tables.keys())
+            missing_tables = [table for table in required_tables if table not in existing_tables]
+            
+            if missing_tables:
+                logger.info(f"发现缺失的表: {missing_tables}")
+                await conn.run_sync(SQLModel.metadata.create_all)
+                logger.info("数据库表创建成功")
+            else:
+                logger.info("所有数据库表已存在，无需创建")
     except Exception as e:
         logger.error(f"创建数据库表失败: {e}")
         raise
@@ -82,8 +97,9 @@ async def check_db_connection() -> bool:
         bool: 连接是否正常
     """
     try:
+        from sqlalchemy import text
         async with engine.begin() as conn:
-            await conn.execute("SELECT 1")
+            await conn.execute(text("SELECT 1"))
         logger.info("数据库连接正常")
         return True
     except Exception as e:

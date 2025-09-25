@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""
+    MYSQL_PASSWORD: str = "root"
     MYSQL_DATABASE: str = "personatalk"
     
     # 异步数据库连接池配置

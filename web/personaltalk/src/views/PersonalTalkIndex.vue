@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PersonalCard from "@/components/PersonalCard.vue";
 import CusButton from "@/components/CusButton.vue";
-import {onMounted, onUnmounted, onUpdated, ref} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
 import HistorySession from "@/components/HistorySession.vue";
@@ -27,44 +27,7 @@ eventBus.on('openHistorySession', openHistorySession)
 
 onMounted(() => {
   //todo:获取历史聊天记录
-  historyList.value = [
-    {
-      listName: '历史记录',
-      Id: '1'
-    },
-    {
-      listName: '新的记录',
-      Id: '2'
-    },
-    {
-      listName: '新的记录',
-      Id: '3'
-    },
-    {
-      listName: '新的记录',
-      Id: 's4'
-    },
-    {
-      listName: '新的记录',
-      Id: '5'
-    },
-    {
-      listName: '新的记录',
-      Id: '6'
-    },
-    {
-      listName: '新的记录',
-      Id: '7'
-    },
-    {
-      listName: '新的记录',
-      Id: '8'
-    },
-    {
-      listName: '新的记录',
-      Id: '9'
-    }
-  ]
+  historyList.value = []
 
   console.log(historyList.value)
 })
@@ -90,6 +53,8 @@ const handleSend = () => {
       isQuestion: true,
     })
 
+    historyList.value.unshift({listName: message.value, Id: 111});
+
     // todo:此处发送请求给后端，可考虑通过socket进行通信
 
     if (message.value) {
@@ -99,6 +64,8 @@ const handleSend = () => {
         isQuestion: false,
       })
     }
+
+    //  todo:判断是否为新消息，新消息就需要发送请求生成新的消息列表记录
 
 
     message.value = '';

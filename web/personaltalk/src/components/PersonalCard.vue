@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import router from '@/router';
 
+
+const beginSpokenDialogue = () => {
+  router.push({path: '/SpokenDialogue'});
+}
 </script>
 
 <template>
-  <div class="info-main">
+  <div class="info-main" @click="beginSpokenDialogue">
     <div class="character-image">
 
     </div>
@@ -134,7 +139,7 @@
   transition: all .5s;
 }
 
-.begin-talk:hover::after{
+.begin-talk:hover::after {
   top: -350px;
   left: 10px;
 }

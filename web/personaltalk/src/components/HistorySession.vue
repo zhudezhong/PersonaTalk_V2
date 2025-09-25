@@ -64,7 +64,7 @@ const handleChooseHistory = (item: HistoryItem) => {
   background-color: #f3f4f6;
   border-radius: 10px;
   padding: 80px 20px 20px;
-  transition: all .5s;
+  transition: all .5s ease-in;
 }
 
 .history-list {
@@ -106,27 +106,32 @@ const handleChooseHistory = (item: HistoryItem) => {
   text-align: center;
   line-height: 40px;
   border-radius: 50%;
-  background-color: #333333;
-  transition: all 1s;
+  background-color: rgba(209, 209, 209, 0.7);
+  transition: all .5s ease-in;
+}
+
+.show-button:hover{
+  background-color: rgb(182, 182, 182);
+
 }
 
 .button-show {
   position: fixed;
-  top: 70px;
-  transform: translateX(-130px);
+  top: 500px;
+  transform: translateX(-160px);
 }
 
 .button-not-show {
   position: fixed;
-  top: 70px;
-  left: 250px;
+  top: 500px;
+  left: 290px;
   transition: all 1s;
 }
 
 .create-new {
   cursor: pointer;
   color: #ffffff;
-  width: 200px;
+  width: 250px;
   height: 40px;
   text-align: center;
   line-height: 40px;

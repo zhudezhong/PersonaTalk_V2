@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PersonalCard from "@/components/PersonalCard.vue";
 import CusButton from "@/components/CusButton.vue";
-import {onMounted, onUnmounted, onUpdated, ref} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
 import HistorySession from "@/components/HistorySession.vue";
@@ -29,39 +29,39 @@ onMounted(() => {
   //todo:获取历史聊天记录
   historyList.value = [
     {
-      listName: '历史记录',
+      listName: '新的记录',
       Id: '1'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: '2'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: '3'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: 's4'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: '5'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: '6'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: '7'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: '8'
     },
     {
-      listName: '新的记录',
+      listName: '历史记录',
       Id: '9'
     }
   ]

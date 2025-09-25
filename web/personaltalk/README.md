@@ -10,18 +10,10 @@ PersonalTalk 前端项目基于 Vite 构建，使用 Docker 实现开发环境�
    下载地址：[Docker 官网](https://www.docker.com/products/docker-desktop/)  
    安装后启动 Docker 服务（状态栏显示 Docker 图标即启动成功）。
 
-2. **Git**  
-   下载地址：[Git 官网](https://git-scm.com/)  
-   用于拉取项目代码。
-
-
 ## 快速开始
 
-### 1. 拉取项目代码# 克隆代码仓库（替换为实际仓库地址）
-git clone https://github.com/你的账号/personaltalk.git
-
 # 进入前端项目目录
-cd personaltalk/web/personaltalk
+
 
 ### 2. 拉取 Docker 开发镜像
 使用统一的开发镜像，无需本地安装 Node.js 环境：# 拉取镜像（首次拉取可能较慢，耐心等待）

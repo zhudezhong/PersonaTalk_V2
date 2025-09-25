@@ -1,9 +1,4 @@
 <template>
-
-
-
-
-
   <div class="speech-container">
     <!-- 实时识别内容显示区 -->
     <div class="realtime-box" v-show="realtimeTranscript">

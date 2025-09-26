@@ -16,22 +16,29 @@ interface characterInfo {
 const props = defineProps<{
   characterInfo: characterInfo
 }>()
+const imgUrl = `@/assets/imgs/${props.characterInfo.img}`;
+console.log('characterInfo', props.characterInfo.img)
+console.log('imgUrl', imgUrl)
+
+const getImgUrl = (imgName: string) => {
+
+  return new URL(`../assets/imgs/${imgName}`, import.meta.url).href;
+};
+
 </script>
 
 <template>
   <div class="info-main" @click="beginSpokenDialogue">
     <div class="character-image">
-
+      <img
+        :src="getImgUrl(props.characterInfo.img)"
+        :alt="props.characterInfo.name"
+        class="full-display-image"
+      >
     </div>
 
-    <span class="character-name">
-     {{ characterInfo.name }}
-    </span>
-
-    <span class="character-desc">
-      {{ characterInfo.description }}
-    </span>
-
+    <span class="character-name">{{ characterInfo.name }}</span>
+    <span class="character-desc">{{ characterInfo.description }}</span>
     <div class="begin-talk">开始对话</div>
   </div>
 </template>
@@ -40,7 +47,7 @@ const props = defineProps<{
 .info-main {
   cursor: pointer;
   width: 200px;
-  height: 250px;
+  height: 253px;
   border: 1px solid #d5d5d5;
   position: relative;
   overflow: hidden;
@@ -48,13 +55,11 @@ const props = defineProps<{
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* 径向渐变遮罩层 - 作为单独的遮罩元素 */
 .info-main::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
-  /* 径向渐变：中心透明向边缘过渡到深色 */
   background: radial-gradient(
     circle at center,
     rgba(0, 0, 0, 0.1) 20%,
@@ -71,16 +76,31 @@ const props = defineProps<{
   background-size: cover;
   background-position: center;
   transition: all .3s;
-  transform: scale(1.05);
+  transform: scale(1);
 }
 
 .info-main:hover .character-image {
-  transform: scale(1.00);
+  transform: scale(1.05);
+}
+
+.character-image {
+  width: 100%;
+  height: 100%;
+  display: inline-block;
+  border-radius: 8px;
+  border: 2px solid #333;
+}
+
+.full-display-image {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  margin: 0 auto;
 }
 
 .character-name {
   position: absolute;
-  top: 50px;
+  top: 160px;
   left: 0;
   width: 100%;
   text-align: center;
@@ -109,6 +129,10 @@ const props = defineProps<{
 
 .info-main:hover .character-desc {
   opacity: 1;
+}
+
+.info-main:hover .character-name {
+  top: 160px;
 }
 
 .info-main::after {

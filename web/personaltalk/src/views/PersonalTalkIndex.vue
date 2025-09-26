@@ -5,6 +5,32 @@ import {onMounted, onUnmounted, ref} from 'vue';
 import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
 import HistorySession from "@/components/HistorySession.vue";
+import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
+
+
+const isModalVisible = ref(false);
+
+// 新增：打开自定义角色弹窗
+const handleOpenCustomModal = () => {
+  isModalVisible.value = true;
+};
+
+// 新增：提交自定义角色（可根据需求对接后端）
+const handleCustomCharacterSubmit = (characterData: any) => {
+  console.log('自定义角色数据：', characterData);
+  // 1. 可将角色数据存入historyList（作为新会话）
+  historyList.value.unshift({
+    listName: `与${characterData.name}的对话`,
+    Id: Date.now(), // 用时间戳生成唯一ID
+    character: characterData // 存储角色信息
+  });
+  // 2. 可通过eventBus通知其他组件（如ChatBox）使用该角色
+  eventBus.emit('setCustomCharacter', characterData);
+  // 3. 自动展开聊天框
+  isExpanded.value = true;
+  sessionId.value = Date.now(); // 关联新会话ID
+};
+
 
 const isExpanded = ref(false);
 const message = ref('');
@@ -91,21 +117,22 @@ interface characterPrompt {
 
 const HarryPotterInfo = {
   name: "HarryPotter",
-  img: '',
+  img: 'HarryPotter.png',
   description: '在霍格沃茨魔法学校成长、凭勇气与智慧对抗伏地伏地魔、守护魔法世界的传奇巫师。',
 }
 
 const SocratesInfo = {
   name: "Socrates",
-  img: '',
+  img: 'Socrates.png',
   description: '于古希腊雅典践行哲思、凭诘问与理性探寻真理、坚守信念赴死的哲贤。',
 }
 
 const SherlockHolmesInfo = {
   name: "Sherlock Holmes",
-  img: '',
+  img: 'Holmes.png',
   description: '在伦敦贝克街立足探案、凭细节与演绎破解奇案、成侦探界传奇的神探。',
 }
+
 
 const HarryPotter = {
   name:
@@ -154,6 +181,13 @@ const Sherlock = {
     <HistorySession :history-list="historyList"/>
 
   </div>
+
+  <CustomCharacterModal
+    :visible="isModalVisible"
+    @close="isModalVisible = false"
+    @submit="handleCustomCharacterSubmit"
+  />
+
   <div class="container">
     <template v-if="!isExpanded">
       <div class="card-list">
@@ -162,8 +196,12 @@ const Sherlock = {
         <PersonalCard :characterInfo="SherlockHolmesInfo"/>
       </div>
       <div class="footer-button">
-        <CusButton buttonText="自定义角色" :speed="1.5"/>
-        <CusButton buttonText="文本聊天" :speed="1.5"/>
+        <CusButton
+          buttonText="自定义角色"
+          :speed="1.5"
+          @click="handleOpenCustomModal"
+        />
+        <CusButton buttonText="文本聊天" :speed="1.5" @click="handleChatClick"/>
       </div>
     </template>
     <template v-else>

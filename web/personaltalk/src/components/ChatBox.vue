@@ -176,7 +176,7 @@ onUnmounted(() => {
         :class="{ 'scrolling': scrollAnimation }"
         :style="{ opacity: buttonOpacity }"
       >
-        👇
+        <i class="iconfont icon-dibu"></i>
       </button>
     </div>
   </Transition>

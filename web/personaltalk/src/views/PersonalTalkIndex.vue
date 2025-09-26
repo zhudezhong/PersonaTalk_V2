@@ -10,23 +10,24 @@ import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
 
 const isModalVisible = ref(false);
 
-// 新增：打开自定义角色弹窗
+// 打开自定义角色弹窗
 const handleOpenCustomModal = () => {
   isModalVisible.value = true;
 };
 
-// 新增：提交自定义角色（可根据需求对接后端）
+// 提交自定义角色（可根据需求对接后端）
 const handleCustomCharacterSubmit = (characterData: any) => {
   console.log('自定义角色数据：', characterData);
-  // 1. 可将角色数据存入historyList（作为新会话）
+  //  todo:自定义角色的 prompt 发送给后端，加上等待动画
+
   historyList.value.unshift({
     listName: `与${characterData.name}的对话`,
     Id: Date.now(), // 用时间戳生成唯一ID
     character: characterData // 存储角色信息
   });
-  // 2. 可通过eventBus通知其他组件（如ChatBox）使用该角色
+  // 可通过eventBus通知其他组件（如ChatBox）使用该角色
   eventBus.emit('setCustomCharacter', characterData);
-  // 3. 自动展开聊天框
+  // 自动展开聊天框
   isExpanded.value = true;
   sessionId.value = Date.now(); // 关联新会话ID
 };
@@ -215,7 +216,9 @@ const Sherlock = {
     >
       <div class="message-circle">
         <span v-if="!isExpanded" @click="handleChatClick"
-              style="display: block;width: 100%;height: 100%">icon</span>
+              style="display: block;width: 100%;height: 100%">
+          <i class="iconfont icon-bianjixiaoxi1"></i>
+        </span>
         <span v-if="isExpanded" @click="isExpanded = false"
               style="display: block;width: 100%;height: 100%">✕</span>
       </div>

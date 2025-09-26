@@ -12,13 +12,16 @@
         class="start-btn"
         :class="[isRecognizing ? 'start-btn' : 'stop-btn' ]"
       >
-        {{ isRecognizing ? '开启ing' : '静音ing' }}
+        <!-- {{ isRecognizing ? '开启ing' : '静音ing' }}-->
+        <i style="font-size: 18px" v-if="isRecognizing" class="iconfont icon-maikefeng"></i>
+        <i style="font-size: 18px" v-else class="iconfont icon-mic-off"></i>
+
       </button>
       <button
         class="hang-up"
         @click="handleHangUp"
       >
-        挂断
+        <i class="iconfont icon-guaduan"></i>
       </button>
     </div>
 
@@ -261,7 +264,7 @@ button:disabled {
 }
 
 .realtime-box {
-  padding:5px 10px;
+  padding: 5px 10px;
   background: #f5f5f5;
   border-radius: 5px;
   text-align: left;

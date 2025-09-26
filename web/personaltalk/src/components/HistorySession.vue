@@ -99,7 +99,9 @@ const handleSearchClick = () => {
       class="show-button"
       :class="[isShow ? 'button-show' : 'button-not-show']"
     >
-      {{ isShow ? 'Show' : 'Hdn' }}
+      <!--      {{ isShow ? 'Show' : 'Hdn' }}-->
+      <i v-if="isShow" class="iconfont icon-youhua"></i>
+      <i v-else class="iconfont icon-zuohua"></i>
     </div>
   </div>
 
@@ -113,8 +115,13 @@ const handleSearchClick = () => {
         class="control-button create-button"
         :class="{'expanded': isActivity === 'createNew'}"
       >
-        <span v-if="isActivity === 'createNew'">创建新对话</span>
-        <span v-else>新</span>
+        <span v-if="isActivity === 'createNew'">
+          创建新对话
+          <i class="iconfont icon-bianjixiaoxi"></i>
+        </span>
+        <span v-else>
+          <i class="iconfont icon-bianjixiaoxi"></i>
+        </span>
       </div>
 
       <div
@@ -132,7 +139,8 @@ const handleSearchClick = () => {
           >
         </template>
         <template v-else>
-          搜索
+          <i style="position: absolute;left: 11px;top: 2px;"
+             class="iconfont icon-sousuo"></i>
         </template>
       </div>
     </div>

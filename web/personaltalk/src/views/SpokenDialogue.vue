@@ -125,7 +125,14 @@ onUnmounted(() => {
     Harry Potter
   </div>
   <div class="container">
-    <span class="go-back" @click="goBack">返回</span>
+    <i class="iconfont icon-zuohua" style="position: absolute;
+    z-index: 999999;
+    left: 33px;
+    top: 20px;
+    color: black;"></i>
+    <span class="go-back" @click="goBack">
+      返回
+    </span>
     <div
       class="background-graph"
       :class="{ 'scale-out': isLeaving }"
@@ -170,22 +177,21 @@ onUnmounted(() => {
   --outer-color: 251, 209, 255;
   background: radial-gradient(
     circle at center,
-    #ff9b94 0%,
-    #ffc2c2 40%,
-    #f7b9c9 70%,
+    #ff9388 0%,
+    #ffa7a7 35%,
+    #ffb4ca 60%,
+    rgba(var(--outer-color), 0.3) 85%,
     rgba(var(--outer-color), 0) 100%
   );
   opacity: 0;
-
+  filter: blur(50px);
   will-change: transform, opacity, background;
   backface-visibility: hidden;
   perspective: 1000px;
   transform: translateZ(0);
 
-
   transition: background 1s ease-in-out;
-
-  animation: scaleIn .5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scaleIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   animation-iteration-count: 1;
 }
 

@@ -1,0 +1,71 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 5031015 */
+  src: url('iconfont.woff2?t=1758894516090') format('woff2'),
+       url('iconfont.woff?t=1758894516090') format('woff'),
+       url('iconfont.ttf?t=1758894516090') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-bianjixiaoxi:before {
+  content: "\e639";
+}
+
+.icon-bianjixiaoxi1:before {
+  content: "\e755";
+}
+
+.icon-xinjianchuangkou:before {
+  content: "\e600";
+}
+
+.icon-fanhui:before {
+  content: "\e601";
+}
+
+.icon-dibu:before {
+  content: "\e76a";
+}
+
+.icon-guaduan:before {
+  content: "\e65d";
+}
+
+.icon-zuohua:before {
+  content: "\e655";
+}
+
+.icon-youhua:before {
+  content: "\e65a";
+}
+
+.icon-maikefeng:before {
+  content: "\e683";
+}
+
+.icon-guaduan1:before {
+  content: "\e629";
+}
+
+.icon-sousuo:before {
+  content: "\e60d";
+}
+
+.icon-mic-off:before {
+  content: "\e96c";
+}
+
+.icon-mic-off-full:before {
+  content: "\e96d";
+}
+
+.icon-sousuo-copy:before {
+  content: "\e96e";
+}
+

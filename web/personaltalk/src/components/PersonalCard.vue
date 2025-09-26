@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import router from '@/router';
+import {defineProps} from "vue";
 
 
 const beginSpokenDialogue = () => {
   router.push({path: '/SpokenDialogue'});
 }
+
+interface characterInfo {
+  name: string;
+  img: string;
+  description: string;
+}
+
+const props = defineProps<{
+  characterInfo: characterInfo
+}>()
 </script>
 
 <template>
@@ -12,11 +23,13 @@ const beginSpokenDialogue = () => {
     <div class="character-image">
 
     </div>
+
     <span class="character-name">
-      Harry Potter
+     {{ characterInfo.name }}
     </span>
+
     <span class="character-desc">
-        在霍格沃茨魔法学校成长、凭勇气与智慧对抗伏地伏地魔、守护魔法世界的传奇巫师。
+      {{ characterInfo.description }}
     </span>
 
     <div class="begin-talk">开始对话</div>

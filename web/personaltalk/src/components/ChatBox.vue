@@ -167,7 +167,6 @@ onUnmounted(() => {
         <div class="message-container" v-for="(msg, index) in messageList" :key="index">
         <span :class="msg.isQuestion ? 'question-class' : 'answer-class'">
           {{ msg.content }}
-          <Loading/>
         </span>
         </div>
       </div>

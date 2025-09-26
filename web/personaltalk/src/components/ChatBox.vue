@@ -1,6 +1,9 @@
 <script setup>
 import {defineProps, onMounted, onUnmounted, ref, nextTick, watch} from 'vue'
 import eventBus from "@/utils/eventBus.js";
+import MsgLoadingAnimation from "@/components/MsgLoadingAnimation.vue";
+import Loading from "@/components/Loading.vue";
+import AudioWave from "@/components/AudioWave.vue";
 
 // 定义接收的props
 const props = defineProps({
@@ -164,6 +167,7 @@ onUnmounted(() => {
         <div class="message-container" v-for="(msg, index) in messageList" :key="index">
         <span :class="msg.isQuestion ? 'question-class' : 'answer-class'">
           {{ msg.content }}
+          <Loading/>
         </span>
         </div>
       </div>

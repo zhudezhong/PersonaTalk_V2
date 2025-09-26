@@ -18,7 +18,7 @@ const isActivity = ref<'createNew' | 'search'>('createNew')
 
 // 初始化 activityList 为 null（明确类型）
 const activityList = ref<number | null>(null)
-const isShow = ref(false)
+const isShow = ref(true)
 
 // 给 searchValue 初始化为空字符串，避免 undefined
 const searchValue = ref<string>('')

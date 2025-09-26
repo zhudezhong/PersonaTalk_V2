@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref, onBeforeUnmount, onMounted, onUnmounted} from 'vue';
+import {ref, onBeforeUnmount, onMounted, onUnmounted, defineProps} from 'vue';
 import router from '@/router';
 import SpeechAPI from "@/components/SpeechAPI.vue";
 import eventBus from "@/utils/eventBus.js";
@@ -7,6 +7,29 @@ import eventBus from "@/utils/eventBus.js";
 const isLeaving = ref(false);
 let canUnmount = false;
 let colorInterval: number | null = null; // 颜色切换定时器
+
+interface characterPrompt {
+  name: string,
+  source: string,
+  personality: string,
+  languageStyle: string,
+  background: string,
+}
+
+const props = defineProps<{
+  characterPrompt: characterPrompt
+}>()
+
+const characterPrompt = props.characterPrompt;
+
+/*
+const prompt = `你现在需要完全扮演用户自定义的角色：${characterPrompt.name}。
+1. 角色来源：${characterPrompt.source || "无特定来源，按用户描述演绎"}；
+2. 性格特点：${characterPrompt.personality || "中性性格，自然对话即可"}；
+3. 语言风格：${characterPrompt.languageStyle || "正常口语，无特殊风格"}；
+4. 身份背景：${characterPrompt.background || "无特定背景，专注当前对话"}；
+5. 核心要求：严格按上述设定回复，不偏离角色，不暴露AI身份，用角色的视角与用户聊天。`
+*/
 
 // 动画结束回调：控制路由跳转
 const handleAnimationEnd = () => {
@@ -66,6 +89,8 @@ onMounted(() => {
   startColorAnimation();
 
   eventBus.on('hangUp', hangUp);
+
+  //todo:调用接口，把prompt传给后端
 
 });
 

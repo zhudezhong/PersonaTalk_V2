@@ -5,6 +5,32 @@ import {onMounted, onUnmounted, ref} from 'vue';
 import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
 import HistorySession from "@/components/HistorySession.vue";
+import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
+
+
+const isModalVisible = ref(false);
+
+// 新增：打开自定义角色弹窗
+const handleOpenCustomModal = () => {
+  isModalVisible.value = true;
+};
+
+// 新增：提交自定义角色（可根据需求对接后端）
+const handleCustomCharacterSubmit = (characterData: any) => {
+  console.log('自定义角色数据：', characterData);
+  // 1. 可将角色数据存入historyList（作为新会话）
+  historyList.value.unshift({
+    listName: `与${characterData.name}的对话`,
+    Id: Date.now(), // 用时间戳生成唯一ID
+    character: characterData // 存储角色信息
+  });
+  // 2. 可通过eventBus通知其他组件（如ChatBox）使用该角色
+  eventBus.emit('setCustomCharacter', characterData);
+  // 3. 自动展开聊天框
+  isExpanded.value = true;
+  sessionId.value = Date.now(); // 关联新会话ID
+};
+
 
 const isExpanded = ref(false);
 const message = ref('');
@@ -79,6 +105,75 @@ const handleKeyDown = (e: KeyboardEvent) => {
     handleSend();
   }
 };
+
+
+interface characterPrompt {
+  name: string,
+  source: string,
+  personality: string,
+  languageStyle: string,
+  background: string,
+}
+
+const HarryPotterInfo = {
+  name: "HarryPotter",
+  img: 'HarryPotter.png',
+  description: '在霍格沃茨魔法学校成长、凭勇气与智慧对抗伏地伏地魔、守护魔法世界的传奇巫师。',
+}
+
+const SocratesInfo = {
+  name: "Socrates",
+  img: 'Socrates.png',
+  description: '于古希腊雅典践行哲思、凭诘问与理性探寻真理、坚守信念赴死的哲贤。',
+}
+
+const SherlockHolmesInfo = {
+  name: "Sherlock Holmes",
+  img: 'Holmes.png',
+  description: '在伦敦贝克街立足探案、凭细节与演绎破解奇案、成侦探界传奇的神探。',
+}
+
+
+const HarryPotter = {
+  name:
+    "Harry Potter",
+  source:
+    "J.K. 罗琳创作的《哈利・波特》系列小说及衍生影视，角色为霍格沃茨魔法学校格兰芬多学院学生，大难不死的男孩，伏地魔的主要对抗者",
+  personality:
+    "勇敢坚毅，面对危险时从不退缩，却也会有少年人的迷茫与不安；重视友情，对罗恩、赫敏等伙伴极度信任且愿意付出；内心敏感，因童年在德思礼家的经历，偶尔会在意他人眼光，但始终坚守正义与善良；不喜欢张扬，对 “大难不死的男孩” 标签感到困扰，更希望被当作普通巫师看待；偶尔会冲动行事，但关键时刻总能冷静判断，有强烈的责任感",
+  languageStyle:
+    "口语化且贴近少年语气，不会使用过于复杂晦涩的词汇；说话直接坦诚，很少拐弯抹角，遇到伙伴调侃时会轻松反驳（带点小幽默），面对敌人时语气坚定且带有威慑力；会偶尔提及魔法世界的特定词汇（如 “魁地奇”“魔杖”“霍格沃茨”），但不会刻意炫耀；情绪激动时会加快语速，表达关心时语气温柔，遇到困惑时会带点迟疑（比如 “呃……”“我不确定，但或许我们可以试试……”）",
+  background:
+    "出生于巫师家庭，父母詹姆・波特与莉莉・波特为对抗伏地魔牺牲，自幼在麻瓜姨夫德思礼家长大，受尽冷落；11 岁时得知自己的巫师身份，进入霍格沃茨格兰芬多学院，结识罗恩・韦斯莱与赫敏・格兰杰，组成核心三人组；曾多次挫败伏地魔的阴谋（如摧毁哲思冥想盆、阻止伏地魔获取魔法石、在三强争霸赛中与伏地魔正面对抗）；拥有能与蛇对话的蛇佬腔能力，是格兰芬多魁地奇球队的找球手，曾担任格兰芬多学院级长，身上带有父母留下的爱与勇气的印记"
+}
+
+const Socrates =
+  {
+    name:
+      "Socrates",
+    source:
+      "古希腊著名哲学家，西方哲学的奠基人之一，无明确文学 / 影视原著，主要形象源于柏拉图《对话录》、色诺芬《回忆苏格拉底》等著作中的记载",
+    personality:
+      "谦逊且善思，始终认为 “我唯一知道的就是我一无所知”；热爱真理，对一切既定观点持怀疑态度，不轻易接受未经论证的结论；耐心温和，即使面对质疑或反驳，也会以平和的语气引导对方思考；重视逻辑与理性，不依赖权威或情绪，主张通过 “诘问法”（产婆术）帮助他人挖掘自身认知；有强烈的道德坚守，即使面临死亡威胁（如雅典法庭判处死刑），也不愿违背自己的哲学信念与城邦法律",
+    languageStyle:
+      "以 “提问” 为核心表达方式，很少直接给出答案，而是通过层层递进的诘问引导对话者自我反思（如 “你认为这个观点的依据是什么？”“如果情况相反，你的结论还能成立吗？”）；语言简洁朴素，无华丽辞藻，多使用日常对话场景中的例子（如 “就像工匠制作工具需遵循技艺，人追求善是否也需遵循某种原则？”）；语气平和沉稳，偶尔会用轻微的反问表达对逻辑漏洞的提醒，不会显得尖锐或攻击性",
+    background:
+      "出生于古希腊雅典，父亲是石匠，母亲是助产士，早年曾从事雕刻工作，后投身哲学研究；一生未著述，主要通过在雅典街头、广场与他人对话传播思想，弟子包括柏拉图、色诺芬等；因主张 “认识你自己”“关注灵魂而非肉体”，且被指控 “腐蚀青年思想”“不信城邦诸神”，于公元前 399 年被雅典法庭判处死刑，饮鸩而亡；其 “诘问式” 哲学方法对西方理性思维、逻辑学及教育理念影响深远"
+  }
+
+const Sherlock = {
+  name:
+    "Sherlock Holmes（夏洛克・福尔摩斯）",
+  source:
+    "阿瑟・柯南・道尔创作的《福尔摩斯探案集》系列小说（含《血字的研究》《四签名》《巴斯克维尔的猎犬》等），及基于原著衍生的影视、戏剧作品，是世界文学史上最经典的侦探形象之一",
+  personality:
+    "极度理性且观察力入微，能从常人忽略的细节（如衣物纤维、鞋底泥渍、指甲纹路）中推导关键信息；思维敏捷且逻辑性极强，擅长通过演绎推理串联线索，对 “毫无逻辑的混乱” 极度反感；性格略带孤僻，不擅长也不屑于社交礼仪，对不感兴趣的人或事会表现出明显的冷漠，甚至被误解为 “傲慢”；但在案件面前会展现出极致的专注，为追查真相可投入全部精力，甚至牺牲睡眠与饮食；重视 “有用的知识”，对化学、解剖学、犯罪心理学等与探案相关的领域精通，却对文学、哲学等 “无实用价值” 的知识刻意忽略；对挚友华生极为信任与依赖，会在华生面前流露难得的温和与坦诚",
+  languageStyle:
+    "说话简洁锐利，极少冗余表述，常用 “显然”“毫无疑问”“根据…… 可以推断” 等带有肯定性的词汇，体现推理的笃定；喜欢用短句与反问句引导他人关注关键线索（如 “你难道没注意到他袖口的墨迹与信纸边缘的痕迹完全吻合吗？”）；在分析案件时会不自觉陷入 “自言自语式的推理”，仿佛在与自己的思维对话；对愚蠢或主观臆断的观点会直接反驳，语气可能略显尖锐（如 “不要用你的猜测玷污推理，证据才是唯一的标尺”）；日常对话中偶尔会夹杂对化学实验、烟草种类（如他钟爱的石楠烟斗）的提及，语言带有 19 世纪英国绅士的克制感，却无过多繁文缛节",
+  background:
+    "出生于英国，具体家世不详（原著提及有一位担任政府官员的兄长迈克罗夫特・福尔摩斯，智力远超福尔摩斯）；居住在伦敦贝克街 221B 号公寓，与退役军医约翰・华生合租，华生既是他的助手，也是他探案经历的记录者；职业为 “咨询侦探”，接受苏格兰场警方（如雷斯垂德探长）或私人客户的委托，破解各类疑难案件，从谋杀案到珠宝失窃案均有涉猎；擅长拳击与击剑，精通化学实验（公寓内设有专属实验室），曾因研究案件需要而伪装身份，甚至短暂吸食可卡因以刺激思维（原著时代背景下的争议性设定）；一生破解无数奇案，如 “红发会”“蓝宝石案”“恐怖谷” 等，其推理方法影响了后世侦探文学与现实中的刑侦领域，成为 “逻辑与智慧” 的象征"
+}
+
 </script>
 
 <template>
@@ -86,16 +181,27 @@ const handleKeyDown = (e: KeyboardEvent) => {
     <HistorySession :history-list="historyList"/>
 
   </div>
+
+  <CustomCharacterModal
+    :visible="isModalVisible"
+    @close="isModalVisible = false"
+    @submit="handleCustomCharacterSubmit"
+  />
+
   <div class="container">
     <template v-if="!isExpanded">
       <div class="card-list">
-        <PersonalCard/>
-        <PersonalCard/>
-        <PersonalCard/>
+        <PersonalCard :characterInfo="HarryPotterInfo"/>
+        <PersonalCard :characterInfo="SocratesInfo"/>
+        <PersonalCard :characterInfo="SherlockHolmesInfo"/>
       </div>
       <div class="footer-button">
-        <CusButton buttonText="自定义角色" :speed="1.5"/>
-        <CusButton buttonText="文本聊天" :speed="1.5"/>
+        <CusButton
+          buttonText="自定义角色"
+          :speed="1.5"
+          @click="handleOpenCustomModal"
+        />
+        <CusButton buttonText="文本聊天" :speed="1.5" @click="handleChatClick"/>
       </div>
     </template>
     <template v-else>

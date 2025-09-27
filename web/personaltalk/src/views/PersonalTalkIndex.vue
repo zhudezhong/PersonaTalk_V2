@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PersonalCard from "@/components/PersonalCard.vue";
 import CusButton from "@/components/CusButton.vue";
-import {onMounted, onUnmounted, ref} from 'vue';
+import {getCurrentInstance, onMounted, onUnmounted, ref} from 'vue';
 import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
 import HistorySession from "@/components/HistorySession.vue";
@@ -11,6 +11,10 @@ import {usePromptStore} from '@/stores/promptStore';
 
 const promptStore = usePromptStore();
 
+// 获取全局实例代理（在setup顶层获取）
+const instance = getCurrentInstance();
+const globalProperties = instance?.appContext.config.globalProperties;
+
 const isModalVisible = ref(false);
 
 // 打开自定义角色弹窗
@@ -18,31 +22,30 @@ const handleOpenCustomModal = () => {
   isModalVisible.value = true;
 };
 
-// 提交自定义角色（对接后端）
+// 提交自定义自定义角色（对接后端）
 const handleCustomCharacterSubmit = (characterData: any) => {
   console.log('自定义角色数据：', characterData);
   //  todo:自定义角色的 prompt 发送给后端，加上等待动画
   eventBus.emit('updateCharacterPrompt', characterData)
-
 };
 
 
 const isExpanded = ref(false);
 const message = ref('');
-const historyList = ref([]);
+const historyList = ref<Array<{ listName: string; Id: number }>>([]);
 
 const handleCreateNewSession = () => {
   isExpanded.value = true;
 }
 
-const sessionId = ref(null);
+const sessionId = ref<number | null>(null);
 
-const openHistorySession = (item: any) => {
+const openHistorySession = (item: { Id: number }) => {
   isExpanded.value = true;
   sessionId.value = item.Id;
 }
 
-const updateCharacterPrompt = (name: any, isImport: boolean = false) => {
+const updateCharacterPrompt = (name: string | object, isImport: boolean = false) => {
   if (isImport) {
     //  json格式，prompt导入过来的
     console.log('prompt导入过来的,需要进行json解析并存储')
@@ -53,26 +56,19 @@ const updateCharacterPrompt = (name: any, isImport: boolean = false) => {
     switch (name) {
       case 'Harry Potter':
         promptStore.setSharedPrompt(HarryPotter);
-
-        break
+        break;
       case 'Socrates':
         promptStore.setSharedPrompt(Socrates);
-
-        break
+        break;
       case 'Sherlock Holmes':
         promptStore.setSharedPrompt(SherlockHolmes);
-
-        break
-
+        break;
     }
-  } else if (typeof name === "object") {
+  } else if (typeof name === "object" && name !== null) {
     //  用户自定义角色过来的
     promptStore.setSharedPrompt(name);
-
     console.log('promptStore', promptStore.sharedPrompt)
   }
-
-
 }
 
 
@@ -83,103 +79,120 @@ eventBus.on('updateCharacterPrompt', updateCharacterPrompt)
 
 onMounted(() => {
   //todo:获取历史聊天记录
-  historyList.value = []
-
-  console.log(historyList.value)
+  historyList.value = [];
+  console.log(historyList.value);
 })
 
 // 组件卸载时移除监听（避免内存泄漏）
 onUnmounted(() => {
-  eventBus.off('createNewSession', handleCreateNewSession)
-  eventBus.off('openHistorySession', openHistorySession)
-
-  eventBus.off('updateCharacterPrompt', updateCharacterPrompt)
+  eventBus.off('createNewSession', handleCreateNewSession);
+  eventBus.off('openHistorySession', openHistorySession);
+  eventBus.off('updateCharacterPrompt', updateCharacterPrompt);
 })
 
 const handleChatClick = () => {
-  isExpanded.value = true
-  sessionId.value = null
+
+  if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
+    globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
+  }
+
+  isExpanded.value = true;
+  sessionId.value = null;
 }
 
-const isPromptImportVisible = ref(false)
+const isPromptImportVisible = ref(false);
 
 const handlePromptImport = () => {
-  isPromptImportVisible.value = true
+  isPromptImportVisible.value = true;
 }
 
 const handlePromptImportSubmit = (prompt: any) => {
-  console.log('导入的Prompt', prompt)
-  isPromptImportVisible.value = false
-  updateCharacterPrompt(prompt, true)
+  console.log('导入的Prompt', prompt);
+  isPromptImportVisible.value = false;
+  updateCharacterPrompt(prompt, true);
 }
-
 
 // 处理发送消息
 const handleSend = () => {
   if (message.value.trim()) {
+
+    if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
+      globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
+    }
+
+    //  todo: 1.
+
+    console.log('promptStore', promptStore.systemPrompt);
+
     console.log('发送消息:', message.value);
 
     eventBus.emit('question-message', {
       content: message.value,
       isQuestion: true,
-    })
+    });
 
-    historyList.value.unshift({listName: message.value, Id: 111});
+    historyList.value.unshift({
+      listName: message.value,
+      Id: Date.now()  // 使用时间戳确保ID唯一
+    });
 
     // todo:此处发送请求给后端，可考虑通过socket进行通信
-
     if (message.value) {
       //  模拟后端回复信息，测试前端效果
       eventBus.emit('answer-message', {
         content: '思考中...',
         isQuestion: false,
-      })
+      });
     }
 
     //  todo:判断是否为新消息，新消息就需要发送请求生成新的消息列表记录
-
-
     message.value = '';
-
   }
 };
 
 // 处理键盘回车
 const handleKeyDown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter') {
+  if (e.key === 'Enter' && !e.shiftKey) {  // 排除Shift+Enter组合键
+    e.preventDefault();  // 阻止默认行为（避免换行）
     handleSend();
   }
 };
 
 
-interface characterPrompt {
-  name: string,
-  source: string,
-  personality: string,
-  languageStyle: string,
-  background: string,
+interface CharacterPrompt {
+  name: string;
+  source: string;
+  personality: string;
+  languageStyle: string;
+  background: string;
 }
 
-const HarryPotterInfo = {
+interface CharacterInfo {
+  name: string;
+  img: string;
+  description: string;
+}
+
+const HarryPotterInfo: CharacterInfo = {
   name: "Harry Potter",
   img: 'HarryPotter.png',
   description: '在霍格沃茨魔法学校成长、凭勇气与智慧对抗伏地伏地魔、守护魔法世界的传奇巫师。',
 }
 
-const SocratesInfo = {
+const SocratesInfo: CharacterInfo = {
   name: "Socrates",
   img: 'Socrates.png',
   description: '于古希腊雅典践行哲思、凭诘问与理性探寻真理、坚守信念赴死的哲贤。',
 }
 
-const SherlockHolmesInfo = {
+const SherlockHolmesInfo: CharacterInfo = {
   name: "Sherlock Holmes",
   img: 'Holmes.png',
   description: '在伦敦贝克街立足探案、凭细节与演绎破解奇案、成侦探界传奇的神探。',
 }
 
 
-const HarryPotter = {
+const HarryPotter: CharacterPrompt = {
   name:
     "Harry Potter",
   source:
@@ -192,7 +205,7 @@ const HarryPotter = {
     "出生于巫师家庭，父母詹姆・波特与莉莉・波特为对抗伏地魔牺牲，自幼在麻瓜姨夫德思礼家长大，受尽冷落；11 岁时得知自己的巫师身份，进入霍格沃茨格兰芬多学院，结识罗恩・韦斯莱与赫敏・格兰杰，组成核心三人组；曾多次挫败伏地魔的阴谋（如摧毁哲思冥想盆、阻止伏地魔获取魔法石、在三强争霸赛中与伏地魔正面对抗）；拥有能与蛇对话的蛇佬腔能力，是格兰芬多魁地奇球队的找球手，曾担任格兰芬多学院级长，身上带有父母留下的爱与勇气的印记"
 }
 
-const Socrates =
+const Socrates: CharacterPrompt =
   {
     name:
       "Socrates",
@@ -206,7 +219,7 @@ const Socrates =
       "出生于古希腊雅典，父亲是石匠，母亲是助产士，早年曾从事雕刻工作，后投身哲学研究；一生未著述，主要通过在雅典街头、广场与他人对话传播思想，弟子包括柏拉图、色诺芬等；因主张 “认识你自己”“关注灵魂而非肉体”，且被指控 “腐蚀青年思想”“不信城邦诸神”，于公元前 399 年被雅典法庭判处死刑，饮鸩而亡；其 “诘问式” 哲学方法对西方理性思维、逻辑学及教育理念影响深远"
   }
 
-const SherlockHolmes = {
+const SherlockHolmes: CharacterPrompt = {
   name:
     "Sherlock Holmes",
   source:
@@ -218,7 +231,6 @@ const SherlockHolmes = {
   background:
     "出生于英国，具体家世不详（原著提及有一位担任政府官员的兄长迈克罗夫特・福尔摩斯，智力远超福尔摩斯）；居住在伦敦贝克街 221B 号公寓，与退役军医约翰・华生合租，华生既是他的助手，也是他探案经历的记录者；职业为 “咨询侦探”，接受苏格兰场警方（如雷斯垂德探长）或私人客户的委托，破解各类疑难案件，从谋杀案到珠宝失窃案均有涉猎；擅长拳击与击剑，精通化学实验（公寓内设有专属实验室），曾因研究案件需要而伪装身份，甚至短暂吸食可卡因以刺激思维（原著时代背景下的争议性设定）；一生破解无数奇案，如 “红发会”“蓝宝石案”“恐怖谷” 等，其推理方法影响了后世侦探文学与现实中的刑侦领域，成为 “逻辑与智慧” 的象征"
 }
-
 </script>
 
 <template>
@@ -254,7 +266,7 @@ const SherlockHolmes = {
       </div>
     </template>
     <template v-else>
-      <ChatBox :show="isExpanded" :load-session="sessionId"/>
+      <ChatBox :show="isExpanded"/>
     </template>
 
     <div

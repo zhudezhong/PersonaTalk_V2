@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import {defineProps, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref} from 'vue';
+import {onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref} from 'vue';
 import router from '@/router';
 import SpeechAPI from "@/components/SpeechAPI.vue";
 import eventBus from "@/utils/eventBus.js";
 import AudioWave from "@/components/AudioWave.vue";
 import {usePromptStore} from '@/stores/promptStore';
 import Loading from "@/components/Loading.vue";
-import axios from 'axios'
 import {sendChatRequest} from '@/api/chatapi'
-import VoiceChatAudioPlayer from "@/components/VoiceChatAudioPlayer.vue";
 
 const isLeaving = ref(false);
 let canUnmount = false;
@@ -90,7 +88,6 @@ onMounted(async () => {
     system_prompt: promptStore.systemPrompt,
   }
   const response = await sendChatRequest(params)
-  console.log(response)
 
   if (response.code === 200) {
     //  响应成功，把sessionId存入pinia并发送请求创建会话记录

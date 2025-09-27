@@ -37,6 +37,10 @@ onMounted(() => {
   if (chatContainer.value) {
     chatContainer.value.addEventListener('scroll', handleScroll)
   }
+
+  // 组件挂载时统一注册事件监听（避免分散）
+  eventBus.on('question-message', handleQuestionMessage)
+  eventBus.on('answer-message', handleAnswerMessage)
 })
 
 // 监听showScrollButton变化，触发淡入淡出动画
@@ -75,7 +79,7 @@ const handleScroll = () => {
     const scrollHeight = chatContainer.value.scrollHeight
     const clientHeight = chatContainer.value.clientHeight
 
-    // 避免频繁触发动画
+    // 避免频繁触发动画：滚动到底部200px内隐藏按钮，之外显示
     const shouldShow = scrollTop + clientHeight < scrollHeight - 200
     if (shouldShow !== showScrollButton.value) {
       showScrollButton.value = shouldShow
@@ -131,32 +135,22 @@ const handleAnswerMessage = (args) => {
   scrollToBottom()
 }
 
-
-// 组件挂载时监听事件
-eventBus.on('question-message', handleQuestionMessage)
-
-// 组件卸载时移除监听（避免内存泄漏）
+// 组件卸载时统一清理（避免重复注册卸载逻辑）
 onUnmounted(() => {
+  // 移除事件总线监听
   eventBus.off('question-message', handleQuestionMessage)
+  eventBus.off('answer-message', handleAnswerMessage)
+
+  // 移除滚动事件监听
   if (chatContainer.value) {
     chatContainer.value.removeEventListener('scroll', handleScroll)
   }
-  // 清除动画
+
+  // 清除滚动动画
   if (scrollAnimation) {
     cancelAnimationFrame(scrollAnimation)
   }
 })
-
-
-// 组件挂载时监听事件
-eventBus.on('answer-message', handleAnswerMessage)
-
-// 组件卸载时移除监听（避免内存泄漏）
-onUnmounted(() => {
-  eventBus.off('answer-message', handleAnswerMessage)
-})
-
-
 </script>
 
 <template>
@@ -164,9 +158,9 @@ onUnmounted(() => {
     <div>
       <div v-if="show" class="chat-box" ref="chatContainer">
         <div class="message-container" v-for="(msg, index) in messageList" :key="index">
-        <span :class="msg.isQuestion ? 'question-class' : 'answer-class'">
-          {{ msg.content }}
-        </span>
+          <span :class="msg.isQuestion ? 'question-class' : 'answer-class'">
+            {{ msg.content }}
+          </span>
         </div>
       </div>
 
@@ -287,6 +281,8 @@ onUnmounted(() => {
   max-width: 70%;
   word-wrap: break-word;
   word-break: break-all;
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 
 .question-class {
@@ -303,4 +299,3 @@ onUnmounted(() => {
   border-top-left-radius: 4px;
 }
 </style>
-

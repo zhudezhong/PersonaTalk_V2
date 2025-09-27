@@ -10,6 +10,7 @@
       <button
         @click="toggleRecognition"
         class="start-btn"
+        :title="[isRecognizing ? '静音' : '开麦' ]"
         :class="[isRecognizing ? 'start-btn' : 'stop-btn' ]"
       >
         <!-- {{ isRecognizing ? '开启ing' : '静音ing' }}-->
@@ -19,9 +20,17 @@
       </button>
       <button
         class="hang-up"
+        title="挂断"
         @click="handleHangUp"
       >
         <i class="iconfont icon-guaduan"></i>
+      </button>
+
+      <button title="复制模型prompt"
+              class="export-btn"
+              @click="handleExportPrompt"
+      >
+        导出
       </button>
     </div>
 
@@ -222,9 +231,25 @@ const resetTranscripts = () => {
   lastFinalSegment = '';
 };
 
+const promptStore = usePromptStore();
+
 const handleHangUp = () => {
   eventBus.emit('hangUp');
 }
+
+const handleExportPrompt = async () => {
+  const contentToCopy = JSON.stringify(promptStore.sharedPrompt);
+
+  try {
+    // 调用navigator.clipboard.writeText方法来复制内容
+    await navigator.clipboard.writeText(contentToCopy);
+    console.log('内容已成功复制到剪切板');
+  } catch (error) {
+    console.error('复制内容时出现错误:', error);
+  }
+}
+
+
 // 生命周期
 onMounted(() => {
   // statusMsg.value = '正在请求麦克风权限...';
@@ -233,6 +258,7 @@ onMounted(() => {
     if (recognition) startRecognition();
   }, 500);
 });
+
 
 onUnmounted(() => {
   stopRecognition();
@@ -254,8 +280,10 @@ onUnmounted(() => {
 
 .btn-group {
   display: flex;
-  justify-content: center;
   gap: 10px;
+  margin-left: 25px;
+  align-items: center;
+  justify-content: space-between;
 }
 
 button {
@@ -294,6 +322,18 @@ button {
 .hang-up:hover {
   color: white;
   background-color: #ff4c4c;
+}
+
+.export-btn {
+  background: rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  margin-right: 30px;
+  transition: 0.1s;
+  margin-left: 30px;
+}
+
+.export-btn:hover {
+  background: rgba(51, 51, 51, 0.5);
 }
 
 button:disabled {

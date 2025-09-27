@@ -43,6 +43,8 @@ const validateForm = (): boolean => {
 
 // 提交表单
 const handleSubmit = () => {
+
+  console.log(prompt.value);
   if (validateForm()) {
     emit('submit', prompt.value.trim());
     handleClose(); // 提交后关闭弹窗

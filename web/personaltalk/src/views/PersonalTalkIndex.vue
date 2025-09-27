@@ -46,10 +46,14 @@ const openHistorySession = (item: { Id: number }) => {
   sessionId.value = item.Id;
 }
 
-const updateCharacterPrompt = (name: string | object, isImport: boolean = false) => {
+const updateCharacterPrompt = (name: any | object, isImport: boolean = false) => {
   if (isImport) {
     //  json格式，prompt导入过来的
-    console.log('prompt导入过来的,需要进行json解析并存储')
+    console.log('prompt导入过来的,需要进行json解析并存储', name)
+    promptStore.setSharedPrompt(JSON.parse(name));
+    if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
+      globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
+    }
     return;
   }
   if (typeof name === "string") {
@@ -68,6 +72,11 @@ const updateCharacterPrompt = (name: string | object, isImport: boolean = false)
   } else if (typeof name === "object" && name !== null) {
     //  用户自定义角色过来的
     promptStore.setSharedPrompt(name);
+
+    if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
+      globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
+    }
+
     console.log('promptStore', promptStore.sharedPrompt)
   }
 }
@@ -83,8 +92,8 @@ onMounted(async () => {
   historyList.value = [];
 
   //todo：服务器接口有问题
-  const historySession = await getHistorySession()
-  console.log('historySession', historySession)
+  // const historySession = await getHistorySession()
+  // console.log('historySession', historySession)
   console.log(historyList.value);
 })
 

@@ -25,7 +25,7 @@ class OpenAIModelService(BaseModelService):
             **kwargs: 其他配置参数
         """
         super().__init__(api_key, base_url, model, **kwargs)
-        self.timeout = kwargs.get('timeout', 30)
+        self.timeout = kwargs.get('timeout', 360)
         self.max_retries = kwargs.get('max_retries', 3)
         self.retry_delay = kwargs.get('retry_delay', 1)
     

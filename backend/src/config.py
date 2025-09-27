@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # 模型服务配置
     MODEL_SERVICE_TYPE: str = "qiniu"  # 默认使用七牛云
     MODEL_SERVICE_NAME: str = "default"  # 默认服务名称
-    MODEL_TIMEOUT: int = 30  # 请求超时时间（秒）
+    MODEL_TIMEOUT: int = 360  # 请求超时时间（秒）
     MODEL_MAX_RETRIES: int = 3  # 最大重试次数
     MODEL_RETRY_DELAY: int = 1  # 重试延迟（秒）
     

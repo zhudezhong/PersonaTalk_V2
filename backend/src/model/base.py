@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 def get_current_time():
     """获取当前时间（东八区）"""
-    return datetime.now(ZoneInfo("Asia/Shanghai"))
+    return datetime.now(ZoneInfo("UTC"))
 
 
 class IDMixin:

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {ref, defineProps, defineEmits, watch} from 'vue';
 import CusButton from "@/components/CusButton.vue";
+import router from '@/router';
 
 // 定义props：接收弹窗显示状态
 const props = defineProps<{
@@ -45,6 +46,8 @@ const handleSubmit = () => {
   if (validateForm()) {
     emit('submit', prompt.value.trim());
     handleClose(); // 提交后关闭弹窗
+
+    router.push({path: '/SpokenDialogue'});
   }
 };
 

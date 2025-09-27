@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {ref, defineProps, defineEmits, watch} from 'vue';
 import CusButton from "@/components/CusButton.vue";
+import router from '@/router';
 
 // 定义props：接收弹窗显示状态和预填数据
 const props = defineProps<{
@@ -90,6 +91,8 @@ const handleSubmit = () => {
   if (validateForm()) {
     emit('submit', {...form.value});
     handleClose(); // 提交后关闭弹窗
+
+    router.push({path: '/SpokenDialogue'});
   }
 };
 
@@ -176,8 +179,8 @@ const clearError = (field: keyof typeof formErrors.value) => {
           </div>
 
           <div class="modal-footer">
-            <CusButton buttonText="取消" :speed="1.2" @click="handleClose" class="cancel-btn" />
-            <CusButton buttonText="确认创建" :speed="1.2" @click="handleSubmit" class="submit-btn" />
+            <CusButton buttonText="取消" :speed="1.2" @click="handleClose" class="cancel-btn"/>
+            <CusButton buttonText="确认创建" :speed="1.2" @click="handleSubmit" class="submit-btn"/>
           </div>
         </div>
       </transition>
@@ -190,10 +193,12 @@ const clearError = (field: keyof typeof formErrors.value) => {
 .overlay-enter-from {
   opacity: 0;
 }
+
 .overlay-enter-active,
 .overlay-leave-active {
   transition: opacity 0.3s ease;
 }
+
 .overlay-leave-to {
   opacity: 0;
 }
@@ -202,12 +207,13 @@ const clearError = (field: keyof typeof formErrors.value) => {
   opacity: 0;
   transform: translateY(-20px) scale(0.98);
 }
+
 .modal-enter-active,
 .modal-leave-active {
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.3s ease,
+  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 .modal-leave-to {
   opacity: 0;
   transform: translateY(10px) scale(0.98);

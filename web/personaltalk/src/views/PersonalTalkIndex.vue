@@ -92,6 +92,8 @@ onMounted(() => {
 onUnmounted(() => {
   eventBus.off('createNewSession', handleCreateNewSession)
   eventBus.off('openHistorySession', openHistorySession)
+
+  eventBus.off('updateCharacterPrompt', updateCharacterPrompt)
 })
 
 const handleChatClick = () => {

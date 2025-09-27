@@ -24,7 +24,6 @@ const buttonOpacity = ref(0) // 按钮透明度，用于淡入淡出效果
 let scrollAnimation = null
 
 onMounted(() => {
-  console.log(props.loadSession)
   if (!props.loadSession) {
     messageList.value = [{
       content: '您好，有什么可以帮助您的😊',

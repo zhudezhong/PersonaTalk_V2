@@ -1,9 +1,10 @@
 import {defineStore} from 'pinia';
 
+
 export const usePromptStore = defineStore('prompt', {
   state: () => ({
     // 核心状态：存储角色 Prompt 对象，初始值设为 null（表示“无数据”）
-    sharedPrompt: null
+    sharedPrompt: null, systemPrompt: null
   }), actions: {
     // 存放 Prompt：接收角色对象参数
     setSharedPrompt(prompt) {
@@ -18,6 +19,14 @@ export const usePromptStore = defineStore('prompt', {
 
     clearSharedPrompt() {
       this.sharedPrompt = null;
-    }
+    },
+
+    setSystemPrompt(prompt) {
+      this.systemPrompt = prompt;
+    },
+
+    clearSystemPrompt() {
+      this.systemPrompt = null;
+    },
   }
 });

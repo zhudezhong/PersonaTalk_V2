@@ -6,7 +6,7 @@ from .base import BaseModelMixin
 class ChatRole(str, Enum):
     """聊天角色枚举"""
     USER = "user"  # 用户
-    ASSISTANT = "assistant"  # 大模型/助手
+    SYSTEM = "system"  # 大模型/助手
 
 
 class HistoryChat(SQLModel, BaseModelMixin, table=True):

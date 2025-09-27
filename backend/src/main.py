@@ -187,6 +187,6 @@ if __name__ == "__main__":
         "src.main:app",
         host="0.0.0.0",
         port=8888,
-        reload=True,  # 开发模式下自动重载
+        # reload=True,  # 开发模式下自动重载
         log_level="info"
     )

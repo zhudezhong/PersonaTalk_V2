@@ -8,6 +8,7 @@ import HistorySession from "@/components/HistorySession.vue";
 import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
 import PromptImport from "@/components/PromptImport.vue";
 import {usePromptStore} from '@/stores/promptStore';
+import {getHistorySession, sendChatRequest} from '@/api/chatapi'
 
 const promptStore = usePromptStore();
 
@@ -77,9 +78,13 @@ eventBus.on('openHistorySession', openHistorySession)
 eventBus.on('updateCharacterPrompt', updateCharacterPrompt)
 
 
-onMounted(() => {
+onMounted(async () => {
   //todo:获取历史聊天记录
   historyList.value = [];
+
+  //todo：服务器接口有问题
+  // const historySession = await getHistorySession()
+  // console.log('historySession', historySession)
   console.log(historyList.value);
 })
 
@@ -114,7 +119,7 @@ const handlePromptImportSubmit = (prompt: any) => {
 }
 
 // 处理发送消息
-const handleSend = () => {
+const handleSend = async () => {
   if (message.value.trim()) {
 
     if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
@@ -132,22 +137,35 @@ const handleSend = () => {
       isQuestion: true,
     });
 
+
     historyList.value.unshift({
       listName: message.value,
       Id: Date.now()  // 使用时间戳确保ID唯一
     });
 
+
     // todo:此处发送请求给后端，可考虑通过socket进行通信
-    if (message.value) {
-      //  模拟后端回复信息，测试前端效果
+    console.log('promptStore.systemPrompt', promptStore.systemPrompt)
+    const params = {
+      session_id: promptStore.sessionId,
+      message: message.value,
+      system_prompt: promptStore.systemPrompt,
+    }
+
+    message.value = '';
+
+    const result = await sendChatRequest(params)
+
+    if (result.code === 200) {
       eventBus.emit('answer-message', {
-        content: '思考中...',
+        content: result.data.response,
         isQuestion: false,
       });
     }
 
+
     //  todo:判断是否为新消息，新消息就需要发送请求生成新的消息列表记录
-    message.value = '';
+
   }
 };
 

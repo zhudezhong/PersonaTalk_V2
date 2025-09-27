@@ -7,6 +7,7 @@ import AudioWave from "@/components/AudioWave.vue";
 import {usePromptStore} from '@/stores/promptStore';
 import Loading from "@/components/Loading.vue";
 import axios from 'axios'
+import {sendChatRequest} from '@/api/chatapi'
 
 const isLeaving = ref(false);
 let canUnmount = false;
@@ -82,40 +83,19 @@ const hangUp = () => {
 onMounted(async () => {
   const promptStore = usePromptStore();
   console.log('promptStore.systemPrompt', promptStore.systemPrompt)
+  const params = {
+    session_id: promptStore.sessionId,
+    message: '',
+    system_prompt: promptStore.systemPrompt,
+  }
+  const response = await sendChatRequest(params)
+  console.log(response)
 
+  if (response.code === 200) {
+    //  响应成功，把sessionId存入pinia并发送请求创建会话记录
 
-  try {
-    // 准备请求数据
-    const requestData = {
-      message: '你好', // 这里替换为实际要发送的消息内容
-      system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
-    };
-
-    const response = await axios.post('http://localhost:8888/api/v1/chat/text_chat', requestData, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      timeout: 5000, // 超时时间设为 30 秒，可根据实际情况调整
-    });
-
-    // 处理响应数据
-    if (response.data) {
-      console.log('接口调用成功，响应数据：', response.data);
-      // 在这里可以对响应数据进行后续处理，比如更新页面等
-    }
-  } catch (error) {
-    // 错误处理
-    if (error.response) {
-      // 请求已发出，服务器有响应但状态码不是 2xx
-      console.error('接口调用失败，状态码：', error.response.status);
-      console.error('错误信息：', error.response.data);
-    } else if (error.request) {
-      // 请求已发出，但没有收到响应
-      console.error('没有收到服务器响应：', error.request);
-    } else {
-      // 发送请求时发生错误
-      console.error('请求发送错误：', error.message);
-    }
+    const sessionId = response.data.session_id;
+    promptStore.setSessionId(sessionId);
   }
 
   const graphEl = document.querySelector('.background-graph');

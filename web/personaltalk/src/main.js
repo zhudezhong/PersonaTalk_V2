@@ -25,7 +25,7 @@ app.config.globalProperties.$setSystemPrompt = function (promptInfo) {
         2. 性格特点：${promptInfo.personality || "中性性格，自然对话即可"}；
         3. 语言风格：${promptInfo.languageStyle || "正常口语，无特殊风格"}；
         4. 身份背景：${promptInfo.background || "无特定背景，专注当前对话"}；
-        5. 核心要求：严格按上述设定回复，不偏离角色，不暴露AI身份，用角色的视角与用户聊天。`
+        5. 核心要求：严格按上述设定回复，不偏离角色，不暴露AI身份，用角色的视角与用户聊天，在没有特别表明的情况下需要讲中文。`
   const promptStore = usePromptStore();
 
   promptStore.setSystemPrompt(prompt);

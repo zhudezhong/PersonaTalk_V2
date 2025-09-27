@@ -29,6 +29,8 @@ const beginSpokenDialogue = () => {
     globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
   }
 
+  //  打开新聊天框时清空sessionId，创建新的对话
+  promptStore.sessionId = '';
 
   router.push({path: '/SpokenDialogue'});
 }

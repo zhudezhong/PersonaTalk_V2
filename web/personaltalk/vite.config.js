@@ -9,7 +9,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8888', changeOrigin: true
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        logLevel: 'debug' // 打印代理日志，确认是否转发
       }
     }
   }, plugins: [vue(),], resolve: {

@@ -31,6 +31,8 @@
 <script setup>
 import {ref, onMounted, onUnmounted} from 'vue';
 import eventBus from "@/utils/eventBus.js";
+import axios from "axios";
+import {usePromptStore} from "@/stores/promptStore.js";
 
 // 响应式变量
 const isRecognizing = ref(false);
@@ -68,7 +70,6 @@ const startRecognition = () => {
 
   isRecognizing.value = true;
   errorMsg.value = '';
-  // statusMsg.value = '正在监听语音...';
   resetTranscripts();
   clearTimeout(pauseTimer);
 
@@ -95,11 +96,47 @@ const startRecognition = () => {
 
       // 启动停顿检测
       clearTimeout(pauseTimer);
-      pauseTimer = setTimeout(() => {
+      pauseTimer = setTimeout(async () => {
         if (isRecognizing.value) {
           finalResult.value = currentSessionTranscript;
-          // statusMsg.value = '已检测到停顿，输出最终结果（持续监听中）';
           // 重置当前会话，准备下一轮识别
+          console.log('识别结束，传送信息给后端')
+          const promptStore = usePromptStore();
+
+          try {
+            // 准备请求数据
+            const requestData = {
+              message: finalResult.value,
+              system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
+            };
+
+            console.log('requestData', requestData)
+
+            const response = await axios.post('/api/v1/chat/text_chat', requestData, {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              timeout: 30000,
+            });
+
+            if (response.data) {
+              console.log('接口调用成功，响应数据：', response.data);
+              // 对响应数据进行后续处理，比如更新页面等
+            }
+          } catch (error) {
+            // 错误处理
+            if (error.response) {
+              console.error('接口调用失败，状态码：', error.response.status);
+              console.error('错误信息：', error.response.data);
+            } else if (error.request) {
+              // 请求已发出，但没有收到响应
+              console.error('没有收到服务器响应：', error.request);
+            } else {
+              // 发送请求时发生错误
+              console.error('请求发送错误：', error.message);
+            }
+          }
+
           currentSessionTranscript = '';
           lastFinalSegment = '';
         }
@@ -115,6 +152,7 @@ const startRecognition = () => {
         if (isRecognizing.value) {
           finalResult.value = currentSessionTranscript;
           // statusMsg.value = '已检测到停顿，输出最终结果（持续监听中）';
+
           currentSessionTranscript = '';
           lastFinalSegment = '';
         }

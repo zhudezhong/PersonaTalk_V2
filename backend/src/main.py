@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from src.api.api_v1 import api_router
 from src.api.deps import create_tables, close_db_connections, health_check
 from src.config import settings
+from src.model_server import init_model_service
 
 # 配置日志
 logging.basicConfig(
@@ -39,8 +40,13 @@ async def lifespan(app: FastAPI):
         else:
             logger.error("数据库连接失败")
             raise Exception("数据库连接失败")
+        
+        # 初始化模型服务
+        init_model_service()
+        logger.info("模型服务初始化完成")
+        
     except Exception as e:
-        logger.error(f"数据库初始化失败: {e}")
+        logger.error(f"应用初始化失败: {e}")
         raise
     
     yield

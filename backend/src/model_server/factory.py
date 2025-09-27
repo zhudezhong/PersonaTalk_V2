@@ -189,5 +189,3 @@ class ModelServiceManager:
 
 # 全局模型服务管理器实例
 model_service_manager = ModelServiceManager()
-config = settings.get_model_config()
-model_service_manager.add_service(**config)

@@ -61,6 +61,7 @@ def init_model_service():
 # 类型别名，用于依赖注入
 ModelService = Annotated[BaseModelService, Depends(get_model_service)]
 ModelServiceManagerDep = Annotated[ModelServiceManager, Depends(get_model_service_manager)]
+# init_model_service()
 # manager = get_model_service_manager()
 # service = get_model_service(manager)
 # print(service.get_model_info())

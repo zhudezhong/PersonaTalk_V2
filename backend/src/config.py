@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     def get_model_config(self) -> dict:
         """获取模型服务配置"""
         return {
+            "name": self.OPENAI_MODEL,
             "service_type": self.MODEL_SERVICE_TYPE,
             "service_name": self.MODEL_SERVICE_NAME,
             "api_key": self.OPENAI_API_KEY,

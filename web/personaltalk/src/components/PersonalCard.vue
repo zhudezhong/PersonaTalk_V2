@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import router from '@/router';
+import eventBus from '@/utils/eventBus';
 import {defineProps} from "vue";
 
-
-const beginSpokenDialogue = () => {
-  router.push({path: '/SpokenDialogue'});
-}
 
 interface characterInfo {
   name: string;
@@ -19,6 +16,13 @@ const props = defineProps<{
 const imgUrl = `@/assets/imgs/${props.characterInfo.img}`;
 console.log('characterInfo', props.characterInfo.img)
 console.log('imgUrl', imgUrl)
+
+
+const beginSpokenDialogue = () => {
+  eventBus.emit('updateCharacterPrompt', props.characterInfo.name)
+  router.push({path: '/SpokenDialogue'});
+}
+
 
 const getImgUrl = (imgName: string) => {
 

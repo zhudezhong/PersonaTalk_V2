@@ -6,7 +6,10 @@ import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
 import HistorySession from "@/components/HistorySession.vue";
 import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
+import PromptImport from "@/components/PromptImport.vue";
+import {usePromptStore} from '@/stores/promptStore';
 
+const promptStore = usePromptStore();
 
 const isModalVisible = ref(false);
 
@@ -48,8 +51,30 @@ const openHistorySession = (item: any) => {
   sessionId.value = item.Id;
 }
 
+const updateCharacterPrompt = (name: string) => {
+  switch (name) {
+    case 'Harry Potter':
+      promptStore.setSharedPrompt(HarryPotter);
+
+      break
+    case 'Socrates':
+      promptStore.setSharedPrompt(Socrates);
+
+      break
+    case 'Sherlock Holmes':
+      promptStore.setSharedPrompt(SherlockHolmes);
+
+      break
+
+  }
+
+
+}
+
+
 eventBus.on('createNewSession', handleCreateNewSession)
 eventBus.on('openHistorySession', openHistorySession)
+eventBus.on('updateCharacterPrompt', updateCharacterPrompt)
 
 
 onMounted(() => {
@@ -69,6 +94,19 @@ const handleChatClick = () => {
   isExpanded.value = true
   sessionId.value = null
 }
+
+const isPromptImportVisible = ref(false)
+
+const handlePromptImport = () => {
+  isPromptImportVisible.value = true
+}
+
+const handlePromptImportSubmit = (prompt: any) => {
+  console.log('导入的Prompt', prompt)
+  isPromptImportVisible.value = false
+
+}
+
 
 // 处理发送消息
 const handleSend = () => {
@@ -117,7 +155,7 @@ interface characterPrompt {
 }
 
 const HarryPotterInfo = {
-  name: "HarryPotter",
+  name: "Harry Potter",
   img: 'HarryPotter.png',
   description: '在霍格沃茨魔法学校成长、凭勇气与智慧对抗伏地伏地魔、守护魔法世界的传奇巫师。',
 }
@@ -162,7 +200,7 @@ const Socrates =
       "出生于古希腊雅典，父亲是石匠，母亲是助产士，早年曾从事雕刻工作，后投身哲学研究；一生未著述，主要通过在雅典街头、广场与他人对话传播思想，弟子包括柏拉图、色诺芬等；因主张 “认识你自己”“关注灵魂而非肉体”，且被指控 “腐蚀青年思想”“不信城邦诸神”，于公元前 399 年被雅典法庭判处死刑，饮鸩而亡；其 “诘问式” 哲学方法对西方理性思维、逻辑学及教育理念影响深远"
   }
 
-const Sherlock = {
+const SherlockHolmes = {
   name:
     "Sherlock Holmes（夏洛克・福尔摩斯）",
   source:
@@ -189,6 +227,10 @@ const Sherlock = {
     @submit="handleCustomCharacterSubmit"
   />
 
+  <PromptImport :visible="isPromptImportVisible"
+                @close="isPromptImportVisible = false"
+                @submit="handlePromptImportSubmit"/>
+
   <div class="container">
     <template v-if="!isExpanded">
       <div class="card-list">
@@ -202,7 +244,7 @@ const Sherlock = {
           :speed="1.5"
           @click="handleOpenCustomModal"
         />
-        <CusButton buttonText="文本聊天" :speed="1.5" @click="handleChatClick"/>
+        <CusButton buttonText="prompt 导入" :speed="1.5" @click="handlePromptImport"/>
       </div>
     </template>
     <template v-else>

@@ -4,14 +4,15 @@ import router from '@/router';
 import SpeechAPI from "@/components/SpeechAPI.vue";
 import eventBus from "@/utils/eventBus.js";
 import AudioWave from "@/components/AudioWave.vue";
+import {usePromptStore} from '@/stores/promptStore'; // 导入Store
 import Loading from "@/components/Loading.vue";
 
 // 基础状态管理
 const isLeaving = ref(false);
 let canUnmount = false;
 let colorInterval: number | null = null;
-let timer1: NodeJS.Timeout | null = null;
-let timer2: NodeJS.Timeout | null = null;
+let timer1: number | null = null;
+let timer2: number | null = null;
 
 // WebSocket 核心状态
 let ws: WebSocket | null = null;
@@ -215,7 +216,7 @@ const closeWebSocket = (reason: string = '主动关闭') => {
 };
 
 // 心跳检测
-let heartbeatTimer: NodeJS.Timeout | null = null;
+let heartbeatTimer: number | null = null;
 const HEARTBEAT_INTERVAL = 15000;
 
 const startHeartbeat = () => {
@@ -289,6 +290,13 @@ const hangUp = () => {
 
 // 组件生命周期
 onMounted(() => {
+
+//  初始化Prompt Store实例
+  const promptStore = usePromptStore();
+  console.log('promptStore', promptStore)
+// 读取Store中的sharedPrompt
+
+
   const graphEl = document.querySelector('.background-graph');
   if (graphEl) {
     graphEl.addEventListener('animationend', handleAnimationEnd);
@@ -397,29 +405,29 @@ onErrorCaptured((error) => {
     ></div>
   </div>
 
-<!--  &lt;!&ndash; 消息记录区域 &ndash;&gt;-->
-<!--  <div class="messages-container" ref="messagesContainer">-->
-<!--    <div class="message-item"-->
-<!--         v-for="(msg, index) in receivedMessages"-->
-<!--         :key="index"-->
-<!--         :class="{'user-message': msg.type === 'user', 'ai-message': msg.type === 'ai'}">-->
+  <!--  &lt;!&ndash; 消息记录区域 &ndash;&gt;-->
+  <!--  <div class="messages-container" ref="messagesContainer">-->
+  <!--    <div class="message-item"-->
+  <!--         v-for="(msg, index) in receivedMessages"-->
+  <!--         :key="index"-->
+  <!--         :class="{'user-message': msg.type === 'user', 'ai-message': msg.type === 'ai'}">-->
 
-<!--      <div class="message-avatar">-->
-<!--        <span>{{ msg.type === 'user' ? '我' : props.characterPrompt.name.charAt(0) }}</span>-->
-<!--      </div>-->
+  <!--      <div class="message-avatar">-->
+  <!--        <span>{{ msg.type === 'user' ? '我' : props.characterPrompt.name.charAt(0) }}</span>-->
+  <!--      </div>-->
 
-<!--      <div class="message-content">-->
-<!--        <div class="message-text">{{ msg.content }}</div>-->
-<!--        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>-->
+  <!--      <div class="message-content">-->
+  <!--        <div class="message-text">{{ msg.content }}</div>-->
+  <!--        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>-->
 
-<!--        <div v-if="msg.audioUrl" class="message-audio">-->
-<!--          <audio :src="msg.audioUrl" controls class="audio-player">-->
-<!--            您的浏览器不支持音频播放-->
-<!--          </audio>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </div>-->
+  <!--        <div v-if="msg.audioUrl" class="message-audio">-->
+  <!--          <audio :src="msg.audioUrl" controls class="audio-player">-->
+  <!--            您的浏览器不支持音频播放-->
+  <!--          </audio>-->
+  <!--        </div>-->
+  <!--      </div>-->
+  <!--    </div>-->
+  <!--  </div>-->
 
   <!-- AI头像区域 -->
   <div class="AI-avatar">

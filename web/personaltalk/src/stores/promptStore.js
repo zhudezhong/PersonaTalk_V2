@@ -22,6 +22,7 @@ export const usePromptStore = defineStore('prompt', {
     },
 
     setSystemPrompt(prompt) {
+      console.log('121313123132')
       this.systemPrompt = prompt;
     },
 

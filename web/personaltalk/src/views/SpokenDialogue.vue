@@ -6,18 +6,17 @@ import eventBus from "@/utils/eventBus.js";
 import AudioWave from "@/components/AudioWave.vue";
 import {usePromptStore} from '@/stores/promptStore';
 import Loading from "@/components/Loading.vue";
+import axios from 'axios'
 
-// 基础状态管理
 const isLeaving = ref(false);
 let canUnmount = false;
 let colorInterval: number | null = null;
 let timer1: number | null = null;
 let timer2: number | null = null;
 
-// 移除WebSocket相关状态，保留基础业务状态
 const beginTime = ref(0);
 const connectingTime = ref(0);
-const connecting = ref(false); // 原WebSocket连接状态，改为默认false
+const connecting = ref(false);
 const receivedMessages = ref<Array<{
   type: 'user' | 'ai';
   content: string;
@@ -27,7 +26,6 @@ const receivedMessages = ref<Array<{
 
 const characterPrompt = usePromptStore().sharedPrompt;
 
-// 工具函数（移除WebSocket相关工具函数）
 const getSoftRandomColor = () => {
   const min = 200;
   const max = 255;
@@ -49,9 +47,6 @@ const formatMessageTime = (timestamp: number) => {
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
-// 移除所有WebSocket核心逻辑（连接、发送、接收、关闭、心跳等）
-
-// 页面交互逻辑（移除WebSocket相关处理）
 const handleAnimationEnd = () => {
   if (isLeaving.value) {
     canUnmount = true;
@@ -84,11 +79,44 @@ const hangUp = () => {
   goBack();
 };
 
-// 组件生命周期（移除WebSocket初始化和清理逻辑）
-onMounted(() => {
+onMounted(async () => {
   const promptStore = usePromptStore();
-  console.log('promptStore', promptStore)
-  console.log('promptStore.sharedPrompt', promptStore.sharedPrompt)
+  console.log('promptStore.systemPrompt', promptStore.systemPrompt)
+
+
+  try {
+    // 准备请求数据
+    const requestData = {
+      message: '你好', // 这里替换为实际要发送的消息内容
+      system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
+    };
+
+    const response = await axios.post('http://localhost:8888/api/v1/chat/text_chat', requestData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 5000, // 超时时间设为 30 秒，可根据实际情况调整
+    });
+
+    // 处理响应数据
+    if (response.data) {
+      console.log('接口调用成功，响应数据：', response.data);
+      // 在这里可以对响应数据进行后续处理，比如更新页面等
+    }
+  } catch (error) {
+    // 错误处理
+    if (error.response) {
+      // 请求已发出，服务器有响应但状态码不是 2xx
+      console.error('接口调用失败，状态码：', error.response.status);
+      console.error('错误信息：', error.response.data);
+    } else if (error.request) {
+      // 请求已发出，但没有收到响应
+      console.error('没有收到服务器响应：', error.request);
+    } else {
+      // 发送请求时发生错误
+      console.error('请求发送错误：', error.message);
+    }
+  }
 
   const graphEl = document.querySelector('.background-graph');
   if (graphEl) {
@@ -98,13 +126,12 @@ onMounted(() => {
 
   eventBus.on('hangUp', hangUp);
 
-  // 移除WebSocket初始化代码
   beginTime.value = Date.now();
-  // 保留连接时长计时（如需保留，无WebSocket时可作为页面停留时长）
   if (timer2) clearInterval(timer2);
   timer2 = setInterval(() => {
     connectingTime.value = Date.now() - beginTime.value;
   }, 1000);
+
 });
 
 onBeforeUnmount(() => {
@@ -131,12 +158,10 @@ onBeforeUnmount(() => {
 });
 
 onUnmounted(() => {
-  // 移除WebSocket相关清理逻辑
 });
 
 onErrorCaptured((error) => {
   console.error('[组件错误] 捕获异常:', error);
-  // 移除WebSocket错误处理相关代码
   return false;
 });
 </script>
@@ -146,7 +171,6 @@ onErrorCaptured((error) => {
     {{ characterPrompt?.name || 'HarryPotter' }}
 
     <div class="connect-status">
-      <!-- 移除WebSocket连接状态相关显示，保留基础加载状态（如需保留） -->
       <template v-if="connecting">
         <div>Loading</div>
         <Loading style="margin-left: 8px;"/>
@@ -168,30 +192,6 @@ onErrorCaptured((error) => {
     ></div>
   </div>
 
-  <!-- 消息区域（保留结构，如需继续使用） -->
-  <!--  <div class="messages-container" ref="messagesContainer">-->
-  <!--    <div class="message-item"-->
-  <!--         v-for="(msg, index) in receivedMessages"-->
-  <!--         :key="index"-->
-  <!--         :class="{'user-message': msg.type === 'user', 'ai-message': msg.type === 'ai'}">-->
-
-  <!--      <div class="message-avatar">-->
-  <!--        <span>{{ msg.type === 'user' ? '我' : characterPrompt?.name.charAt(0) }}</span>-->
-  <!--      </div>-->
-
-  <!--      <div class="message-content">-->
-  <!--        <div class="message-text">{{ msg.content }}</div>-->
-  <!--        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>-->
-
-  <!--        <div v-if="msg.audioUrl" class="message-audio">-->
-  <!--          <audio :src="msg.audioUrl" controls class="audio-player">-->
-  <!--          </audio>-->
-  <!--        </div>-->
-  <!--      </div>-->
-  <!--    </div>-->
-  <!--  </div>-->
-
-  <!-- AI头像区域（保留结构） -->
   <div class="AI-avatar">
     <div class="AI-avatar-ripple"></div>
     <div v-if="!connecting" class="audio-wave-container">
@@ -199,7 +199,6 @@ onErrorCaptured((error) => {
     </div>
   </div>
 
-  <!-- 底部语音组件（保留） -->
   <div class="footer-button">
     <SpeechAPI/>
   </div>
@@ -228,19 +227,6 @@ onErrorCaptured((error) => {
   color: #616161;
   display: flex;
   align-items: center;
-}
-
-/* 移除WebSocket错误状态相关样式 */
-.reconnect-btn {
-  margin-left: 8px;
-  width: 200px;
-  padding: 2px 8px;
-  font-size: 12px;
-  background-color: transparent;
-  color: #e3e3e3;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
 }
 
 .container {
@@ -396,109 +382,5 @@ onErrorCaptured((error) => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 999;
-}
-
-
-/* 消息区域样式（保留，如需继续使用） */
-.message-item {
-  display: flex;
-  margin-bottom: 16px;
-  max-width: 80%;
-}
-
-.user-message {
-  margin-left: auto;
-  flex-direction: row-reverse;
-}
-
-.ai-message {
-  margin-right: auto;
-}
-
-.message-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #ffb4ca;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.user-message .message-avatar {
-  background-color: #93c5fd;
-  margin-right: 0;
-  margin-left: 8px;
-}
-
-.message-content {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 18px;
-  padding: 10px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  position: relative;
-}
-
-.user-message .message-content {
-  background-color: rgba(147, 197, 253, 0.8);
-}
-
-.message-text {
-  font-size: 16px;
-  line-height: 1.4;
-  margin-bottom: 4px;
-}
-
-.message-time {
-  font-size: 12px;
-  color: #666;
-  text-align: right;
-}
-
-.message-audio {
-  margin-top: 8px;
-  width: 100%;
-}
-
-.audio-player {
-  width: 100%;
-  border-radius: 4px;
-  margin-top: 4px;
-}
-
-.messages-container {
-  position: absolute;
-  top: 150px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 600px;
-  height: calc(100vh - 350px);
-  overflow-y: auto;
-  padding: 16px;
-  box-sizing: border-box;
-  z-index: 99;
-}
-
-.messages-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.messages-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-.messages-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 147, 136, 0.3);
-  border-radius: 3px;
-}
-
-.messages-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 147, 136, 0.5);
 }
 </style>

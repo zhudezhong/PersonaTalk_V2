@@ -96,6 +96,7 @@ const handleChatClick = () => {
     globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
   }
 
+  console.log(promptStore.systemPrompt);
   isExpanded.value = true;
   sessionId.value = null;
 }

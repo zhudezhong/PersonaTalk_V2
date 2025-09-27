@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import router from '@/router';
 import eventBus from '@/utils/eventBus';
-import {defineProps} from "vue";
+import {defineProps, getCurrentInstance} from "vue";
 
+import {usePromptStore} from '@/stores/promptStore';
 
 interface characterInfo {
   name: string;
@@ -17,9 +18,18 @@ const imgUrl = `@/assets/imgs/${props.characterInfo.img}`;
 console.log('characterInfo', props.characterInfo.img)
 console.log('imgUrl', imgUrl)
 
+const instance = getCurrentInstance();
+const globalProperties = instance?.appContext.config.globalProperties;
+const promptStore = usePromptStore();
 
 const beginSpokenDialogue = () => {
   eventBus.emit('updateCharacterPrompt', props.characterInfo.name)
+
+  if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
+    globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
+  }
+
+
   router.push({path: '/SpokenDialogue'});
 }
 

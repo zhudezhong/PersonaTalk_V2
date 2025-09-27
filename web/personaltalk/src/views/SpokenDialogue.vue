@@ -6,25 +6,17 @@ import eventBus from "@/utils/eventBus.js";
 import AudioWave from "@/components/AudioWave.vue";
 import {usePromptStore} from '@/stores/promptStore';
 import Loading from "@/components/Loading.vue";
+import axios from 'axios'
 
-// 基础状态管理
 const isLeaving = ref(false);
 let canUnmount = false;
 let colorInterval: number | null = null;
 let timer1: number | null = null;
 let timer2: number | null = null;
 
-// WebSocket 核心状态
-let ws: WebSocket | null = null;
-const wsStatus = ref<'init' | 'connecting' | 'connected' | 'error' | 'closed'>('init');
-const wsErrorMsg = ref('');
-const allowReconnect = ref(true); // 新增：控制是否允许自动重连
-const reconnectTimerRef = ref<number | null>(null); // 新增：存储重连定时器
-
-// 业务状态
 const beginTime = ref(0);
 const connectingTime = ref(0);
-const connecting = ref(true);
+const connecting = ref(false);
 const receivedMessages = ref<Array<{
   type: 'user' | 'ai';
   content: string;
@@ -34,19 +26,6 @@ const receivedMessages = ref<Array<{
 
 const characterPrompt = usePromptStore().sharedPrompt;
 
-interface WsRequest {
-  type: 'character_config' | 'user_message' | 'heartbeat';
-  data: any;
-  timestamp: number;
-}
-
-interface WsResponse {
-  type: 'config_ack' | 'ai_response' | 'heartbeat_ack' | 'error';
-  data: any;
-  timestamp: number;
-}
-
-// 工具函数
 const getSoftRandomColor = () => {
   const min = 200;
   const max = 255;
@@ -68,199 +47,9 @@ const formatMessageTime = (timestamp: number) => {
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
-const createWsRequest = (type: WsRequest['type'], data: any): WsRequest => {
-  return {
-    type,
-    data,
-    timestamp: Date.now()
-  };
-};
-
-// WebSocket 核心逻辑
-const initWebSocket = (wsUrl: string) => {
-  // 新增：如果不允许重连，直接返回
-  if (!allowReconnect.value) return;
-
-  if (ws) {
-    closeWebSocket('重新建立连接');
-  }
-
-  wsStatus.value = 'connecting';
-  connecting.value = true;
-  wsErrorMsg.value = '';
-
-  try {
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log('[WebSocket] 连接成功');
-      wsStatus.value = 'connected';
-      connecting.value = false;
-      beginTime.value = Date.now();
-
-      sendCharacterConfig();
-      startHeartbeat();
-
-      if (timer2) clearInterval(timer2);
-      timer2 = setInterval(() => {
-        connectingTime.value = Date.now() - beginTime.value;
-      }, 1000);
-    };
-
-    ws.onmessage = (event) => {
-      handleWsMessage(event.data);
-    };
-
-    ws.onerror = (error) => {
-      const errMsg = error instanceof Error ? error.message : '未知错误';
-      console.error('[WebSocket] 连接错误:', errMsg);
-      wsErrorMsg.value = `连接失败: ${errMsg}`;
-      wsStatus.value = 'error';
-      connecting.value = false;
-    };
-
-    ws.onclose = (event) => {
-      console.log(`[WebSocket] 连接关闭: ${event.reason} (${event.code})`);
-      wsStatus.value = 'closed';
-      connecting.value = false;
-
-      // 优化：只有允许重连且非干净关闭时才尝试重连
-      if (!event.wasClean && allowReconnect.value) {
-        console.log('[WebSocket] 尝试自动重连...');
-        // 存储定时器以便后续清理
-        reconnectTimerRef.value = window.setTimeout(() => {
-          initWebSocket(wsUrl);
-        }, 3000);
-      }
-    };
-  } catch (error) {
-    wsErrorMsg.value = error instanceof Error ? error.message : '创建连接失败';
-    wsStatus.value = 'error';
-    connecting.value = false;
-  }
-};
-
-const sendCharacterConfig = () => {
-  // 新增：检查连接状态和重连开关
-  if (!ws || ws.readyState !== WebSocket.OPEN || !allowReconnect.value) {
-    console.warn('[WebSocket] 连接未就绪或不允许重连，无法发送角色配置');
-    return;
-  }
-
-  const configRequest = createWsRequest('character_config', {
-    character: characterPrompt,
-    clientInfo: {
-      timestamp: Date.now(),
-      platform: navigator.userAgent
-    }
-  });
-
-  ws.send(JSON.stringify(configRequest));
-  console.log('[WebSocket] 已发送角色配置:', configRequest);
-};
-
-const handleWsMessage = (message: string) => {
-  try {
-    const wsResponse: WsResponse = JSON.parse(message);
-    console.log('[WebSocket] 接收后端消息:', wsResponse);
-
-    switch (wsResponse.type) {
-      case 'config_ack':
-        console.log('[WebSocket] 角色配置已确认:', wsResponse.data);
-        eventBus.emit('ws:config_ack', wsResponse.data);
-        break;
-
-      case 'ai_response':
-        console.log('[WebSocket] AI响应:', wsResponse.data);
-        receivedMessages.value.push({
-          type: 'ai',
-          content: wsResponse.data.content || '',
-          time: wsResponse.timestamp,
-          audioUrl: wsResponse.data.audioUrl
-        });
-        eventBus.emit('ws:ai_response', wsResponse.data);
-        break;
-
-      case 'heartbeat_ack':
-        console.log('[WebSocket] 心跳响应正常');
-        break;
-
-      case 'error':
-        wsErrorMsg.value = `后端错误: ${wsResponse.data.msg || '未知错误'}`;
-        console.error('[WebSocket] 后端错误:', wsResponse.data);
-        break;
-
-      default:
-        console.warn('[WebSocket] 未知消息类型:', wsResponse.type);
-    }
-  } catch (error) {
-    console.error('[WebSocket] 解析消息失败:', error);
-    wsErrorMsg.value = '解析后端消息失败';
-  }
-};
-
-const closeWebSocket = (reason: string = '主动关闭') => {
-  // 新增：如果不允许重连，直接清理
-  if (!allowReconnect.value) {
-    ws = null;
-    stopHeartbeat();
-    if (timer2) {
-      clearInterval(timer2);
-      timer2 = null;
-    }
-    return;
-  }
-
-  if (ws && ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
-    ws.close(1000, reason);
-  }
-  ws = null;
-
-  stopHeartbeat();
-  if (timer2) {
-    clearInterval(timer2);
-    timer2 = null;
-  }
-
-  // 新增：清理重连定时器
-  if (reconnectTimerRef.value) {
-    clearTimeout(reconnectTimerRef.value);
-    reconnectTimerRef.value = null;
-  }
-};
-
-// 心跳检测
-let heartbeatTimer: number | null = null;
-const HEARTBEAT_INTERVAL = 15000;
-
-const startHeartbeat = () => {
-  stopHeartbeat();
-
-  heartbeatTimer = window.setInterval(() => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !allowReconnect.value) {
-      stopHeartbeat();
-      return;
-    }
-
-    const heartbeatRequest = createWsRequest('heartbeat', {
-      timestamp: Date.now()
-    });
-    ws.send(JSON.stringify(heartbeatRequest));
-    console.log('[WebSocket] 发送心跳:', heartbeatRequest);
-  }, HEARTBEAT_INTERVAL);
-};
-
-const stopHeartbeat = () => {
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-  }
-};
-
 const handleAnimationEnd = () => {
   if (isLeaving.value) {
     canUnmount = true;
-    closeWebSocket('页面跳转');
     router.push({path: '/'});
   }
 };
@@ -287,15 +76,47 @@ const stopColorAnimation = () => {
 };
 
 const hangUp = () => {
-  closeWebSocket('用户挂断');
   goBack();
 };
 
-// 组件生命周期
-onMounted(() => {
+onMounted(async () => {
   const promptStore = usePromptStore();
-  console.log('promptStore', promptStore)
-  console.log('promptStore.sharedPrompt', promptStore.sharedPrompt)
+  console.log('promptStore.systemPrompt', promptStore.systemPrompt)
+
+
+  try {
+    // 准备请求数据
+    const requestData = {
+      message: '你好', // 这里替换为实际要发送的消息内容
+      system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
+    };
+
+    const response = await axios.post('http://localhost:8888/api/v1/chat/text_chat', requestData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 5000, // 超时时间设为 30 秒，可根据实际情况调整
+    });
+
+    // 处理响应数据
+    if (response.data) {
+      console.log('接口调用成功，响应数据：', response.data);
+      // 在这里可以对响应数据进行后续处理，比如更新页面等
+    }
+  } catch (error) {
+    // 错误处理
+    if (error.response) {
+      // 请求已发出，服务器有响应但状态码不是 2xx
+      console.error('接口调用失败，状态码：', error.response.status);
+      console.error('错误信息：', error.response.data);
+    } else if (error.request) {
+      // 请求已发出，但没有收到响应
+      console.error('没有收到服务器响应：', error.request);
+    } else {
+      // 发送请求时发生错误
+      console.error('请求发送错误：', error.message);
+    }
+  }
 
   const graphEl = document.querySelector('.background-graph');
   if (graphEl) {
@@ -305,21 +126,15 @@ onMounted(() => {
 
   eventBus.on('hangUp', hangUp);
 
-  // 初始化WebSocket连接
-  const wsUrl = 'ws://localhost:3000/ws/character-chat';
-  initWebSocket(wsUrl);
+  beginTime.value = Date.now();
+  if (timer2) clearInterval(timer2);
+  timer2 = setInterval(() => {
+    connectingTime.value = Date.now() - beginTime.value;
+  }, 1000);
+
 });
 
 onBeforeUnmount(() => {
-  // 关键：禁用重连
-  allowReconnect.value = false;
-
-  // 清理重连定时器
-  if (reconnectTimerRef.value) {
-    clearTimeout(reconnectTimerRef.value);
-    reconnectTimerRef.value = null;
-  }
-
   const graphEl = document.querySelector('.background-graph');
   if (graphEl) {
     graphEl.removeEventListener('animationend', handleAnimationEnd);
@@ -328,16 +143,10 @@ onBeforeUnmount(() => {
 
   if (timer1) clearInterval(timer1);
   if (timer2) clearInterval(timer2);
-  stopHeartbeat();
-
-  closeWebSocket('组件卸载');
 
   eventBus.off('hangUp', hangUp);
   eventBus.off('speech:user_input', () => {
   });
-
-  // 置空ws实例
-  ws = null;
 
   if (!canUnmount) {
     setTimeout(() => {
@@ -349,20 +158,10 @@ onBeforeUnmount(() => {
 });
 
 onUnmounted(() => {
-  // 双重保险：再次确认清理
-  allowReconnect.value = false;
-  if (reconnectTimerRef.value) {
-    clearTimeout(reconnectTimerRef.value);
-  }
-  stopHeartbeat();
-  closeWebSocket('组件完全卸载');
-  ws = null;
 });
 
 onErrorCaptured((error) => {
   console.error('[组件错误] 捕获异常:', error);
-  wsErrorMsg.value = '组件运行异常，请刷新页面';
-  closeWebSocket('组件异常');
   return false;
 });
 </script>
@@ -377,14 +176,8 @@ onErrorCaptured((error) => {
         <Loading style="margin-left: 8px;"/>
       </template>
 
-      <template v-else-if="wsStatus === 'connected'">
-        <span>已连接: {{ formatTime(connectingTime) }}</span>
-      </template>
-
-      <template v-else-if="wsStatus === 'closed'">
-        <button class="reconnect-btn">
-          正在尝试重新连接
-        </button>
+      <template v-else>
+        <span style="color: #ffe9e9"> {{ formatTime(connectingTime) }}</span>
       </template>
     </div>
   </div>
@@ -399,37 +192,13 @@ onErrorCaptured((error) => {
     ></div>
   </div>
 
-  <!--  <div class="messages-container" ref="messagesContainer">-->
-  <!--    <div class="message-item"-->
-  <!--         v-for="(msg, index) in receivedMessages"-->
-  <!--         :key="index"-->
-  <!--         :class="{'user-message': msg.type === 'user', 'ai-message': msg.type === 'ai'}">-->
-
-  <!--      <div class="message-avatar">-->
-  <!--        <span>{{ msg.type === 'user' ? '我' : characterPrompt?.name.charAt(0) }}</span>-->
-  <!--      </div>-->
-
-  <!--      <div class="message-content">-->
-  <!--        <div class="message-text">{{ msg.content }}</div>-->
-  <!--        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>-->
-
-  <!--        <div v-if="msg.audioUrl" class="message-audio">-->
-  <!--          <audio :src="msg.audioUrl" controls class="audio-player">-->
-  <!--          </audio>-->
-  <!--        </div>-->
-  <!--      </div>-->
-  <!--    </div>-->
-  <!--  </div>-->
-
-  <!-- AI头像区域 -->
   <div class="AI-avatar">
     <div class="AI-avatar-ripple"></div>
-    <div v-if="wsStatus === 'connected'" class="audio-wave-container">
+    <div v-if="!connecting" class="audio-wave-container">
       <AudioWave color="#d35e82"/>
     </div>
   </div>
 
-  <!-- 底部语音组件 -->
   <div class="footer-button">
     <SpeechAPI/>
   </div>
@@ -458,26 +227,6 @@ onErrorCaptured((error) => {
   color: #616161;
   display: flex;
   align-items: center;
-}
-
-.error-text {
-  color: #ff4d4f;
-}
-
-.closed-text {
-  color: #faad14;
-}
-
-.reconnect-btn {
-  margin-left: 8px;
-  width: 200px;
-  padding: 2px 8px;
-  font-size: 12px;
-  background-color: transparent;
-  color: #e3e3e3;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
 }
 
 .container {
@@ -633,110 +382,5 @@ onErrorCaptured((error) => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 999;
-}
-
-
-.message-item {
-  display: flex;
-  margin-bottom: 16px;
-  max-width: 80%;
-}
-
-.user-message {
-  margin-left: auto;
-  flex-direction: row-reverse;
-}
-
-.ai-message {
-  margin-right: auto;
-}
-
-.message-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #ffb4ca;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.user-message .message-avatar {
-  background-color: #93c5fd;
-  margin-right: 0;
-  margin-left: 8px;
-}
-
-.message-content {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 18px;
-  padding: 10px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  position: relative;
-}
-
-.user-message .message-content {
-  background-color: rgba(147, 197, 253, 0.8);
-}
-
-.message-text {
-  font-size: 16px;
-  line-height: 1.4;
-  margin-bottom: 4px;
-}
-
-.message-time {
-  font-size: 12px;
-  color: #666;
-  text-align: right;
-}
-
-.message-audio {
-  margin-top: 8px;
-  width: 100%;
-}
-
-.audio-player {
-  width: 100%;
-  border-radius: 4px;
-  margin-top: 4px;
-}
-
-
-/* 消息区域样式 */
-.messages-container {
-  position: absolute;
-  top: 150px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 600px;
-  height: calc(100vh - 350px);
-  overflow-y: auto;
-  padding: 16px;
-  box-sizing: border-box;
-  z-index: 99;
-}
-
-.messages-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.messages-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-.messages-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 147, 136, 0.3);
-  border-radius: 3px;
-}
-
-.messages-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 147, 136, 0.5);
 }
 </style>

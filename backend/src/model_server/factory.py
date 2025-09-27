@@ -3,8 +3,9 @@
 用于创建和管理不同的模型服务实例
 """
 from typing import Dict, Any, Optional, Type
-from .base import BaseModelService, ChatRequest, ChatResponse, StreamResponse
-from .openai_service import OpenAIModelService
+from src.config import settings
+from src.model_server.base import BaseModelService, ChatRequest, ChatResponse, StreamResponse
+from src.model_server.openai_service import OpenAIModelService
 
 
 class ModelServiceFactory:
@@ -188,3 +189,5 @@ class ModelServiceManager:
 
 # 全局模型服务管理器实例
 model_service_manager = ModelServiceManager()
+config = settings.get_model_config()
+model_service_manager.add_service(**config)

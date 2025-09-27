@@ -25,4 +25,4 @@ class HistoryChat(SQLModel, BaseModelMixin, table=True):
     
     session_id: str = Field(description="会话ID，关联到HistorySession")
     role: ChatRole = Field(description="角色（用户或大模型）")
-    content: str = Field(default="", description="对话内容")
+    content: str = Field(default="", description="对话内容", max_length=None)

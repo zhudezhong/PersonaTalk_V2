@@ -1,12 +1,10 @@
 import uuid
 from datetime import datetime
 from sqlmodel import Field
-from zoneinfo import ZoneInfo
-
 
 def get_current_time():
     """获取当前时间（东八区）"""
-    return datetime.now(ZoneInfo("UTC"))
+    return datetime.now()
 
 
 class IDMixin:

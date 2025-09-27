@@ -20,9 +20,9 @@
 }
 
 .loader {
-  color: #a3a3a3;
-  font-size: 5px;
-  margin: 80px auto;
+  color: #ffffff;
+  font-size: 2px;
+  margin: 0 auto;
   position: relative;
   text-indent: -9999em;
   -webkit-transform: translateZ(0);

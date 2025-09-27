@@ -6,7 +6,10 @@ import ChatBox from "@/components/ChatBox.vue";
 import eventBus from '@/utils/eventBus'
 import HistorySession from "@/components/HistorySession.vue";
 import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
+import PromptImport from "@/components/PromptImport.vue";
+import {usePromptStore} from '@/stores/promptStore';
 
+const promptStore = usePromptStore();
 
 const isModalVisible = ref(false);
 
@@ -15,21 +18,12 @@ const handleOpenCustomModal = () => {
   isModalVisible.value = true;
 };
 
-// 提交自定义角色（可根据需求对接后端）
+// 提交自定义角色（对接后端）
 const handleCustomCharacterSubmit = (characterData: any) => {
   console.log('自定义角色数据：', characterData);
   //  todo:自定义角色的 prompt 发送给后端，加上等待动画
+  eventBus.emit('updateCharacterPrompt', characterData)
 
-  historyList.value.unshift({
-    listName: `与${characterData.name}的对话`,
-    Id: Date.now(), // 用时间戳生成唯一ID
-    character: characterData // 存储角色信息
-  });
-  // 可通过eventBus通知其他组件（如ChatBox）使用该角色
-  eventBus.emit('setCustomCharacter', characterData);
-  // 自动展开聊天框
-  isExpanded.value = true;
-  sessionId.value = Date.now(); // 关联新会话ID
 };
 
 
@@ -48,8 +42,43 @@ const openHistorySession = (item: any) => {
   sessionId.value = item.Id;
 }
 
+const updateCharacterPrompt = (name: any, isImport: boolean = false) => {
+  if (isImport) {
+    //  json格式，prompt导入过来的
+    console.log('prompt导入过来的,需要进行json解析并存储')
+    return;
+  }
+  if (typeof name === "string") {
+    //  这种情况是从主页的三个预定义角色过来的
+    switch (name) {
+      case 'Harry Potter':
+        promptStore.setSharedPrompt(HarryPotter);
+
+        break
+      case 'Socrates':
+        promptStore.setSharedPrompt(Socrates);
+
+        break
+      case 'Sherlock Holmes':
+        promptStore.setSharedPrompt(SherlockHolmes);
+
+        break
+
+    }
+  } else if (typeof name === "object") {
+    //  用户自定义角色过来的
+    promptStore.setSharedPrompt(name);
+
+    console.log('promptStore', promptStore.sharedPrompt)
+  }
+
+
+}
+
+
 eventBus.on('createNewSession', handleCreateNewSession)
 eventBus.on('openHistorySession', openHistorySession)
+eventBus.on('updateCharacterPrompt', updateCharacterPrompt)
 
 
 onMounted(() => {
@@ -63,12 +92,27 @@ onMounted(() => {
 onUnmounted(() => {
   eventBus.off('createNewSession', handleCreateNewSession)
   eventBus.off('openHistorySession', openHistorySession)
+
+  eventBus.off('updateCharacterPrompt', updateCharacterPrompt)
 })
 
 const handleChatClick = () => {
   isExpanded.value = true
   sessionId.value = null
 }
+
+const isPromptImportVisible = ref(false)
+
+const handlePromptImport = () => {
+  isPromptImportVisible.value = true
+}
+
+const handlePromptImportSubmit = (prompt: any) => {
+  console.log('导入的Prompt', prompt)
+  isPromptImportVisible.value = false
+  updateCharacterPrompt(prompt, true)
+}
+
 
 // 处理发送消息
 const handleSend = () => {
@@ -117,7 +161,7 @@ interface characterPrompt {
 }
 
 const HarryPotterInfo = {
-  name: "HarryPotter",
+  name: "Harry Potter",
   img: 'HarryPotter.png',
   description: '在霍格沃茨魔法学校成长、凭勇气与智慧对抗伏地伏地魔、守护魔法世界的传奇巫师。',
 }
@@ -162,9 +206,9 @@ const Socrates =
       "出生于古希腊雅典，父亲是石匠，母亲是助产士，早年曾从事雕刻工作，后投身哲学研究；一生未著述，主要通过在雅典街头、广场与他人对话传播思想，弟子包括柏拉图、色诺芬等；因主张 “认识你自己”“关注灵魂而非肉体”，且被指控 “腐蚀青年思想”“不信城邦诸神”，于公元前 399 年被雅典法庭判处死刑，饮鸩而亡；其 “诘问式” 哲学方法对西方理性思维、逻辑学及教育理念影响深远"
   }
 
-const Sherlock = {
+const SherlockHolmes = {
   name:
-    "Sherlock Holmes（夏洛克・福尔摩斯）",
+    "Sherlock Holmes",
   source:
     "阿瑟・柯南・道尔创作的《福尔摩斯探案集》系列小说（含《血字的研究》《四签名》《巴斯克维尔的猎犬》等），及基于原著衍生的影视、戏剧作品，是世界文学史上最经典的侦探形象之一",
   personality:
@@ -189,6 +233,10 @@ const Sherlock = {
     @submit="handleCustomCharacterSubmit"
   />
 
+  <PromptImport :visible="isPromptImportVisible"
+                @close="isPromptImportVisible = false"
+                @submit="handlePromptImportSubmit"/>
+
   <div class="container">
     <template v-if="!isExpanded">
       <div class="card-list">
@@ -202,7 +250,7 @@ const Sherlock = {
           :speed="1.5"
           @click="handleOpenCustomModal"
         />
-        <CusButton buttonText="文本聊天" :speed="1.5" @click="handleChatClick"/>
+        <CusButton buttonText="prompt 导入" :speed="1.5" @click="handlePromptImport"/>
       </div>
     </template>
     <template v-else>

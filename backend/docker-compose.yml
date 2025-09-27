@@ -1,0 +1,83 @@
+services:
+  # PersonaTalk Backend 服务
+  personatalk-backend:
+    build: .
+    ports:
+      - "8888:8888"
+    environment:
+      # 数据库配置 - 使用内置的 MySQL 服务
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=personatalk
+      - MYSQL_PASSWORD=personatalk123
+      - MYSQL_DATABASE=personatalk_db
+      
+      # 模型服务配置 - 测试环境默认值
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-test_key}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
+      - MODEL_SERVICE_TYPE=${MODEL_SERVICE_TYPE:-qiniu}
+      
+      # 数据库连接池配置
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=10
+      - DB_POOL_TIMEOUT=30
+      - DB_POOL_RECYCLE=3600
+      - DB_ECHO=true
+      
+    volumes:
+      # 代码热重载（开发模式）
+      - .:/app
+      # 日志持久化
+      - ./logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api/v1/chat/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=personatalk_db
+      - MYSQL_USER=personatalk
+      - MYSQL_PASSWORD=personatalk123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # 初始化脚本
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis 缓存服务（可选，为未来扩展准备）
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mysql_data:
+  redis_data:

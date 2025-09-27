@@ -18,21 +18,12 @@ const handleOpenCustomModal = () => {
   isModalVisible.value = true;
 };
 
-// 提交自定义角色（可根据需求对接后端）
+// 提交自定义角色（对接后端）
 const handleCustomCharacterSubmit = (characterData: any) => {
   console.log('自定义角色数据：', characterData);
   //  todo:自定义角色的 prompt 发送给后端，加上等待动画
+  eventBus.emit('updateCharacterPrompt', characterData)
 
-  historyList.value.unshift({
-    listName: `与${characterData.name}的对话`,
-    Id: Date.now(), // 用时间戳生成唯一ID
-    character: characterData // 存储角色信息
-  });
-  // 可通过eventBus通知其他组件（如ChatBox）使用该角色
-  eventBus.emit('setCustomCharacter', characterData);
-  // 自动展开聊天框
-  isExpanded.value = true;
-  sessionId.value = Date.now(); // 关联新会话ID
 };
 
 
@@ -51,21 +42,34 @@ const openHistorySession = (item: any) => {
   sessionId.value = item.Id;
 }
 
-const updateCharacterPrompt = (name: string) => {
-  switch (name) {
-    case 'Harry Potter':
-      promptStore.setSharedPrompt(HarryPotter);
+const updateCharacterPrompt = (name: any, isImport: boolean = false) => {
+  if (isImport) {
+    //  json格式，prompt导入过来的
+    console.log('prompt导入过来的,需要进行json解析并存储')
+    return;
+  }
+  if (typeof name === "string") {
+    //  这种情况是从主页的三个预定义角色过来的
+    switch (name) {
+      case 'Harry Potter':
+        promptStore.setSharedPrompt(HarryPotter);
 
-      break
-    case 'Socrates':
-      promptStore.setSharedPrompt(Socrates);
+        break
+      case 'Socrates':
+        promptStore.setSharedPrompt(Socrates);
 
-      break
-    case 'Sherlock Holmes':
-      promptStore.setSharedPrompt(SherlockHolmes);
+        break
+      case 'Sherlock Holmes':
+        promptStore.setSharedPrompt(SherlockHolmes);
 
-      break
+        break
 
+    }
+  } else if (typeof name === "object") {
+    //  用户自定义角色过来的
+    promptStore.setSharedPrompt(name);
+
+    console.log('promptStore', promptStore.sharedPrompt)
   }
 
 
@@ -104,7 +108,7 @@ const handlePromptImport = () => {
 const handlePromptImportSubmit = (prompt: any) => {
   console.log('导入的Prompt', prompt)
   isPromptImportVisible.value = false
-
+  updateCharacterPrompt(prompt, true)
 }
 
 
@@ -202,7 +206,7 @@ const Socrates =
 
 const SherlockHolmes = {
   name:
-    "Sherlock Holmes（夏洛克・福尔摩斯）",
+    "Sherlock Holmes",
   source:
     "阿瑟・柯南・道尔创作的《福尔摩斯探案集》系列小说（含《血字的研究》《四签名》《巴斯克维尔的猎犬》等），及基于原著衍生的影视、戏剧作品，是世界文学史上最经典的侦探形象之一",
   personality:

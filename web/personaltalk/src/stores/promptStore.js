@@ -9,9 +9,7 @@ export const usePromptStore = defineStore('prompt', {
     setSharedPrompt(prompt) {
 
       if (typeof prompt === 'object' && prompt !== null && prompt.name && // 确保有“角色名”
-        prompt.personality &&
-        prompt.background
-      ) {
+        prompt.personality && prompt.background && prompt.languageStyle) {
         this.sharedPrompt = prompt;
       } else {
         console.warn('Prompt 数据不完整！需包含 name、personality、background 属性');

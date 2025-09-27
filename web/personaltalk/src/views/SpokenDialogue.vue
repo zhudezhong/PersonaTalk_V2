@@ -30,18 +30,9 @@ const receivedMessages = ref<Array<{
   audioUrl?: string; // 可选：音频地址
 }>>([]);
 
-// 类型定义
-interface characterPrompt {
-  name: string;
-  source: string;
-  personality: string;
-  languageStyle: string;
-  background: string;
-}
 
-const props = defineProps<{
-  characterPrompt: characterPrompt;
-}>();
+const characterPrompt = usePromptStore().sharedPrompt;
+
 
 interface WsRequest {
   type: 'character_config' | 'user_message' | 'heartbeat';
@@ -149,7 +140,7 @@ const sendCharacterConfig = () => {
   }
 
   const configRequest = createWsRequest('character_config', {
-    character: props.characterPrompt,
+    character: characterPrompt,
     clientInfo: {
       timestamp: Date.now(),
       platform: navigator.userAgent
@@ -243,17 +234,7 @@ const stopHeartbeat = () => {
   }
 };
 
-// // 消息区域滚动到最底部
-// const messagesContainer = ref<HTMLDivElement>(null);
-// const scrollToBottom = () => {
-//   setTimeout(() => {
-//     if (messagesContainer.value) {
-//       messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-//     }
-//   }, 100);
-// };
 
-// 原有业务逻辑
 const handleAnimationEnd = () => {
   if (isLeaving.value) {
     canUnmount = true;
@@ -291,10 +272,11 @@ const hangUp = () => {
 // 组件生命周期
 onMounted(() => {
 
-//  初始化Prompt Store实例
+  //  初始化Prompt Store实例
+  //  读取Store中的sharedPrompt
   const promptStore = usePromptStore();
   console.log('promptStore', promptStore)
-// 读取Store中的sharedPrompt
+  console.log('promptStore', promptStore.sharedPrompt)
 
 
   const graphEl = document.querySelector('.background-graph');
@@ -309,33 +291,6 @@ onMounted(() => {
   const wsUrl = 'ws://localhost:3000/ws/character-chat';
   initWebSocket(wsUrl);
 
-  // // 监听用户输入
-  // eventBus.on('speech:user_input', (userInput: {
-  //   content: string;
-  //   type: 'text' | 'audio',
-  //   audioUrl?: string
-  // }) => {
-  //   if (!ws || ws.readyState !== WebSocket.OPEN) {
-  //     console.warn('[WebSocket] 连接未就绪，无法发送用户输入');
-  //     return;
-  //   }
-  //
-  //   const userRequest = createWsRequest('user_message', {
-  //     userInput,
-  //     characterId: props.characterPrompt.name
-  //   });
-  //   ws.send(JSON.stringify(userRequest));
-  //   console.log('[WebSocket] 发送用户输入:', userRequest);
-  //
-  //   receivedMessages.value.push({
-  //     type: 'user',
-  //     content: userInput.content,
-  //     time: Date.now(),
-  //     audioUrl: userInput.audioUrl
-  //   });
-  //
-  //   scrollToBottom();
-  // });
 });
 
 onBeforeUnmount(() => {
@@ -405,7 +360,6 @@ onErrorCaptured((error) => {
     ></div>
   </div>
 
-  <!--  &lt;!&ndash; 消息记录区域 &ndash;&gt;-->
   <!--  <div class="messages-container" ref="messagesContainer">-->
   <!--    <div class="message-item"-->
   <!--         v-for="(msg, index) in receivedMessages"-->
@@ -422,7 +376,6 @@ onErrorCaptured((error) => {
 
   <!--        <div v-if="msg.audioUrl" class="message-audio">-->
   <!--          <audio :src="msg.audioUrl" controls class="audio-player">-->
-  <!--            您的浏览器不支持音频播放-->
   <!--          </audio>-->
   <!--        </div>-->
   <!--      </div>-->

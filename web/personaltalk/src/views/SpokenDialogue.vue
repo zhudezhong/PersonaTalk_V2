@@ -8,6 +8,7 @@ import {usePromptStore} from '@/stores/promptStore';
 import Loading from "@/components/Loading.vue";
 import axios from 'axios'
 import {sendChatRequest} from '@/api/chatapi'
+import VoiceChatAudioPlayer from "@/components/VoiceChatAudioPlayer.vue";
 
 const isLeaving = ref(false);
 let canUnmount = false;

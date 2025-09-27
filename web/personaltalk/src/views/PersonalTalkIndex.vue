@@ -83,8 +83,8 @@ onMounted(async () => {
   historyList.value = [];
 
   //todo：服务器接口有问题
-  // const historySession = await getHistorySession()
-  // console.log('historySession', historySession)
+  const historySession = await getHistorySession()
+  console.log('historySession', historySession)
   console.log(historyList.value);
 })
 

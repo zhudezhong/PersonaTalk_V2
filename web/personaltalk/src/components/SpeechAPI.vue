@@ -33,7 +33,7 @@
               class="export-btn"
               @click="handleExportPrompt"
       >
-        导出
+        <i class="iconfont icon-daochu"></i>
       </button>
     </div>
 
@@ -122,8 +122,10 @@ const startRecognition = () => {
             const requestData = {
               session_id: session_id,
               message: finalResult.value,
-              system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
+              // system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
             };
+
+            console.log('requestData', requestData)
 
             eventBus.emit('question-message', {
               content: finalResult.value,
@@ -141,12 +143,18 @@ const startRecognition = () => {
                 role: 'system',
               });
 
+              console.log('response', response);
+
+              const audio = new Audio();
+              audio.src = 'data:audio/aac;base64,' + response.data.audio_data;
+              await audio.play();
+
+
               isRecognizing.value = true;
               await promptStore.setSessionId(session_id);
 
               // 此处应该先把回复的消息放入缓存
               const historyFormSession = promptStore.historyFormSession;
-              console.log('historyFormSession', historyFormSession)
               promptStore.setHistoryFromSession(historyFormSession);
             }
           } catch (error) {

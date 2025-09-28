@@ -81,17 +81,37 @@ const hangUp = () => {
 
 onMounted(async () => {
   const promptStore = usePromptStore();
-  console.log('promptStore.systemPrompt', promptStore.systemPrompt)
+
+  let voiceType = null
+  console.log('promptStore.sharedPrompt', promptStore.sharedPrompt)
+  switch (promptStore.sharedPrompt.name) {
+    case 'Harry Potter':
+      voiceType = 'qiniu_zh_male_szxyxd'
+      break
+    case 'SunWuKong':
+      voiceType = 'qiniu_zh_male_mzjsxg'
+      break
+    case 'Sherlock Holmes':
+      voiceType = 'qiniu_zh_male_wncwxz'
+      break
+  }
   const params = {
     session_id: promptStore.sessionId,
     message: '',
     system_prompt: promptStore.systemPrompt,
+    voice_type: voiceType
   }
   const response = await sendChatRequest(params)
 
   if (response.code === 200) {
     //  响应成功，把sessionId存入pinia并发送请求创建会话记录
     connecting.value = true
+
+    const audio = new Audio();
+    audio.src = 'data:audio/aac;base64,' + response.data.audio_data;
+    await audio.play();
+
+    console.log('response', response)
     const sessionId = response.data.session_id;
     await promptStore.setSessionId(sessionId);
   }

@@ -19,10 +19,12 @@ export const sendChatRequest = async (params) => {
   try {
 
     console.log('params', params);
-    const requestData = {
+
+    let requestData = {
       session_id: params.session_id || '',
       message: params.message || '',
-      system_prompt: params.system_prompt || ''
+      system_prompt: params.system_prompt || '',
+      voice_type: params.voice_type ? params.voice_type : 'qiniu_zh_female_wwxkjx'
     };
 
     console.log('requestData', requestData)

@@ -3,7 +3,7 @@
 演示如何使用模型服务进行聊天对话
 """
 from typing import Annotated, List, Optional, Generic, TypeVar
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +16,7 @@ from src.api.deps import get_db
 from src.crud.crud_history_chat import HistoryChatCreate
 from src.model.history_chat import ChatRole
 from src.model_server import tts_service
+from src.model_server.tts_service import TTSRequest
 
 import json
 import time
@@ -29,7 +30,15 @@ class ChatRequestModel(BaseModel):
     """聊天请求模型"""
     session_id: Optional[str] = Field(None, description="会话ID，如果不存在则创建新会话")
     message: str = Field(description="用户消息")
-    system_prompt: str = Field("You are a helpful assistant.", description="系统提示词")
+    system_prompt: Optional[str] = Field(default="", description="系统提示词")
+    voice_type: Optional[str] = Field(default="qiniu_zh_female_wwxkjx", description="当前角色的音色类型")
+
+class TTSRequestModel(BaseModel):
+    """TTS请求模型"""
+    text: str = Field(..., description="要转换的文本")
+    voice_type: str = Field(default="qiniu_zh_female_wwxkjx", description="音色类型")
+    encoding: str = Field(default="mp3", description="音频编码格式")
+    speed_ratio: float = Field(default=1.0, description="语速比例")
 
 # 添加响应状态码枚举
 class ResponseCode(int, Enum):
@@ -55,6 +64,8 @@ class ChatResponseData(BaseModel):
     """聊天响应数据模型"""
     session_id: str
     response: str
+    audio_data: Optional[str] = Field(None, description="TTS生成的音频数据（base64编码）")
+    voice_type: Optional[str] = Field(None, description="使用的音色类型")
 
 # 流式聊天响应
 class StreamChatResponseData(BaseModel):
@@ -84,12 +95,14 @@ async def chat_completions(
     try:
         # 1. 处理会话
         session_id = request.session_id
+        system_prompt = ""
         if session_id:
             # 检查会话是否存在
             session = await crud_history_session.get_by_id(db, id=session_id)
             if not session:
                 # 会话不存在，创建新会话
                 session_id = None
+            system_prompt = session.system_prompt
         
         if not session_id:
             # 创建新会话
@@ -97,8 +110,13 @@ async def chat_completions(
             session_create = HistorySessionCreate(
                 session_name=session_name
             )
+            if request.system_prompt:
+                session_create.system_prompt = request.system_prompt
+            if request.voice_type:
+                session_create.voice_type = request.voice_type
             session = await crud_history_session.create(db, obj_in=session_create)
             session_id = session.id
+            system_prompt = session.system_prompt
         
         # 2. 获取历史聊天记录        
         history_chats = await crud_history_chat.get_by_session_id(
@@ -109,14 +127,13 @@ async def chat_completions(
         # 3. 构建消息列表
         messages = []
         
-        # 添加系统提示词
-        if request.system_prompt:
-            messages.append(ChatMessage(role=ChatRole.SYSTEM.value, content=request.system_prompt))
-        
         # 添加历史记录（按时间顺序）
         for chat in history_chats:
             messages.append(ChatMessage(role=chat.role.value, content=chat.content))
         
+        # 添加系统提示词
+        messages.append(ChatMessage(role=ChatRole.SYSTEM.value, content=system_prompt))
+
         # 添加当前用户消息
         messages.append(ChatMessage(role=ChatRole.USER.value, content=request.message))
         
@@ -147,10 +164,30 @@ async def chat_completions(
         )
         await crud_history_chat.create(db, obj_in=assistant_chat_create)
         
-        # 8. 返回统一格式的结果  
+        # 8. 调用TTS服务生成语音（如果提供了voice_type）
+        audio_data = None
+        used_voice_type = None
+        if request.voice_type:
+            try:
+                tts_request = TTSRequest.create_simple(
+                    text=assistant_content,
+                    voice_type=request.voice_type,
+                    encoding="mp3",
+                    speed_ratio=1.0
+                )
+                tts_response = await tts_service.text_to_speech(tts_request)
+                audio_data = tts_response.data  # 这里应该是base64编码的音频数据
+                used_voice_type = request.voice_type
+            except Exception as tts_error:
+                # TTS失败不影响聊天功能，只记录错误
+                print(f"TTS转换失败: {str(tts_error)}")
+        
+        # 9. 返回统一格式的结果  
         response_data = ChatResponseData(
             session_id=session_id,
-            response=assistant_content
+            response=assistant_content,
+            audio_data=audio_data,
+            voice_type=used_voice_type
         )
         
         return ApiResponse(
@@ -320,6 +357,12 @@ async def chat_completions_stream(
 
 @router.get("/voice_list", response_model=ApiResponse[List[dict]])
 async def get_voice_list():
+    """
+    获取可用音色列表
+    
+    Returns:
+        ApiResponse[List[dict]]: 音色列表
+    """
     voice_list = await tts_service.get_voice_list()
     # 将VoiceInfo对象转换为字典格式
     voice_dict_list = [voice.model_dump() for voice in voice_list]
@@ -328,6 +371,46 @@ async def get_voice_list():
         message="获取音色列表成功",
         data=voice_dict_list
     )
+
+
+@router.post("/text_to_speech", response_model=ApiResponse[dict])
+async def text_to_speech(request: TTSRequestModel):
+    """
+    文字转语音接口
+    
+    Args:
+        request: TTS请求数据
+        
+    Returns:
+        ApiResponse[dict]: TTS响应数据
+    """
+    try:
+        tts_request = TTSRequest.create_simple(
+            text=request.text,
+            voice_type=request.voice_type,
+            encoding=request.encoding,
+            speed_ratio=request.speed_ratio
+        )
+        tts_response = await tts_service.text_to_speech(tts_request)
+        
+        return ApiResponse(
+            code=ResponseCode.SUCCESS,
+            message="文字转语音成功",
+            data={
+                "reqid": tts_response.reqid,
+                "operation": tts_response.operation,
+                "sequence": tts_response.sequence,
+                "audio_data": tts_response.data,
+                "addition": tts_response.addition,
+                "voice_type": request.voice_type
+            }
+        )
+    except Exception as e:
+        return ApiResponse(
+            code=ResponseCode.SERVICE_ERROR,
+            message=f"文字转语音失败: {str(e)}",
+            data=None
+        )
 
 # 修改其他端点使用统一响应格式
 @router.get("/models", response_model=ApiResponse[List[dict]])

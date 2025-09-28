@@ -11,12 +11,16 @@ class HistorySessionCreate(BaseModel):
     """创建历史会话的请求模型"""
     username: str = Field(default="admin", description="用户名")
     session_name: str
+    system_prompt: Optional[str] = Field(default="", description="当前角色的提示词")
+    voice_type: Optional[str] = Field(default="", description="当前角色的音色类型")
 
 
 class HistorySessionUpdate(BaseModel):
     """更新历史会话的请求模型"""
     session_name: Optional[str] = None
     is_deleted: Optional[bool] = None
+    system_prompt: Optional[str] = None
+    voice_type: Optional[str] = None
 
 
 class HistorySessionResponse(BaseModel):
@@ -25,6 +29,8 @@ class HistorySessionResponse(BaseModel):
     username: str
     session_name: str
     is_deleted: bool
+    system_prompt: str
+    voice_type: str
     created_at: str
     updated_at: str
 
@@ -56,6 +62,10 @@ class CRUDHistorySession(CRUDBase[HistorySession, HistorySessionCreate, HistoryS
             session_name=obj_in.session_name,
             is_deleted=False
         )
+        if obj_in.system_prompt:
+            db_obj.system_prompt = obj_in.system_prompt
+        if obj_in.voice_type:
+            db_obj.voice_type = obj_in.voice_type
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)

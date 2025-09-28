@@ -96,6 +96,7 @@ async def chat_completions(
         # 1. 处理会话
         session_id = request.session_id
         system_prompt = ""
+        voice_type = ""
         if session_id:
             # 检查会话是否存在
             session = await crud_history_session.get_by_id(db, id=session_id)
@@ -103,6 +104,7 @@ async def chat_completions(
                 # 会话不存在，创建新会话
                 session_id = None
             system_prompt = session.system_prompt if session.system_prompt else ""
+            voice_type = session.voice_type if session.voice_type else ""
         
         if not session_id:
             # 创建新会话
@@ -117,6 +119,7 @@ async def chat_completions(
             session = await crud_history_session.create(db, obj_in=session_create)
             session_id = session.id
             system_prompt = session.system_prompt
+            voice_type = session.voice_type
         
         # 2. 获取历史聊天记录        
         history_chats = await crud_history_chat.get_by_session_id(
@@ -167,20 +170,20 @@ async def chat_completions(
         # 8. 调用TTS服务生成语音（如果提供了voice_type）
         audio_data = None
         used_voice_type = None
-        if request.voice_type:
-            try:
-                tts_request = TTSRequest.create_simple(
+        
+        try:
+            tts_request = TTSRequest.create_simple(
                     text=assistant_content,
-                    voice_type=request.voice_type,
+                    voice_type=voice_type,
                     encoding="mp3",
                     speed_ratio=1.0
-                )
-                tts_response = await tts_service.text_to_speech(tts_request)
-                audio_data = tts_response.data  # 这里应该是base64编码的音频数据
-                used_voice_type = request.voice_type
-            except Exception as tts_error:
-                # TTS失败不影响聊天功能，只记录错误
-                print(f"TTS转换失败: {str(tts_error)}")
+            )
+            tts_response = await tts_service.text_to_speech(tts_request)
+            audio_data = tts_response.data  # 这里应该是base64编码的音频数据
+            used_voice_type = voice_type
+        except Exception as tts_error:
+            # TTS失败不影响聊天功能，只记录错误
+            print(f"TTS转换失败: {str(tts_error)}")
         
         # 9. 返回统一格式的结果  
         response_data = ChatResponseData(

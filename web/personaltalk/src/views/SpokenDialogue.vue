@@ -15,7 +15,7 @@ let timer1: number | null = null;
 let timer2: number | null = null;
 
 const beginTime = ref(0);
-const connectingTime = ref(0);
+const connectingTime = ref(null);
 const connecting = ref(false);
 const receivedMessages = ref<Array<{
   type: 'user' | 'ai';
@@ -79,6 +79,7 @@ const hangUp = () => {
   goBack();
 };
 
+//todo:设置sessionStorage:connectingTime，当用户刷新页面之后恢复上下文以及连接时长
 onMounted(async () => {
   const promptStore = usePromptStore();
   console.log('promptStore.systemPrompt', promptStore.systemPrompt)
@@ -91,9 +92,9 @@ onMounted(async () => {
 
   if (response.code === 200) {
     //  响应成功，把sessionId存入pinia并发送请求创建会话记录
-
+    connecting.value = true
     const sessionId = response.data.session_id;
-    promptStore.setSessionId(sessionId);
+    await promptStore.setSessionId(sessionId);
   }
 
   const graphEl = document.querySelector('.background-graph');
@@ -149,8 +150,7 @@ onErrorCaptured((error) => {
     {{ characterPrompt?.name || 'HarryPotter' }}
 
     <div class="connect-status">
-      <template v-if="connecting">
-        <div>Loading</div>
+      <template v-if="!connecting">
         <Loading style="margin-left: 8px;"/>
       </template>
 
@@ -171,8 +171,9 @@ onErrorCaptured((error) => {
   </div>
 
   <div class="AI-avatar">
-    <div class="AI-avatar-ripple"></div>
-    <div v-if="!connecting" class="audio-wave-container">
+    <div class="AI-avatar-ripple1"></div>
+    <div class="AI-avatar-ripple2"></div>
+    <div v-if="connecting" class="audio-wave-container">
       <AudioWave color="#d35e82"/>
     </div>
   </div>
@@ -324,24 +325,35 @@ onErrorCaptured((error) => {
   transform: translate(-50%, -50%);
 }
 
-.AI-avatar-ripple {
+.AI-avatar-ripple1, .AI-avatar-ripple2 {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(0);
   width: 80px;
   height: 80px;
   border-radius: 50%;
   border: 2px solid #ededed;
-  animation: aiAvatarRipple 3s ease 0.3s infinite;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-fill-mode: forwards;
 }
 
+
+.AI-avatar-ripple1 {
+  animation: aiAvatarRipple 3s infinite;
+}
+
+.AI-avatar-ripple2 {
+  animation: aiAvatarRipple 3s 1s infinite;
+}
+
+
 @keyframes aiAvatarRipple {
-  from {
-    opacity: 0.7;
+  0% {
+    opacity: 1;
     transform: translate(-50%, -50%) scale(0);
   }
-  to {
+  100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(1.7);
   }
@@ -349,7 +361,7 @@ onErrorCaptured((error) => {
 
 .audio-wave-container {
   position: absolute;
-  top: 110px;
+  top: 250px;
   left: -10px;
 }
 

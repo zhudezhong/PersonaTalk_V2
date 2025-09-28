@@ -4,6 +4,7 @@ import eventBus from "@/utils/eventBus.js";
 import MsgLoadingAnimation from "@/components/MsgLoadingAnimation.vue";
 import Loading from "@/components/Loading.vue";
 import AudioWave from "@/components/AudioWave.vue";
+import {usePromptStore} from "@/stores/promptStore.js";
 
 // 定义接收的props
 const props = defineProps({
@@ -23,12 +24,16 @@ const showScrollButton = ref(false)
 const buttonOpacity = ref(0) // 按钮透明度，用于淡入淡出效果
 let scrollAnimation = null
 
+const promptStore = usePromptStore()
 onMounted(() => {
   if (!props.loadSession) {
-    messageList.value = [{
-      content: '您好，有什么可以帮助您的😊',
-      isQuestion: false,
-    }]
+    messageList.value =
+
+      messageList.value = promptStore.historyFormSession.length ? promptStore.historyFormSession : [{
+        content: '您好，有什么可以帮助您的😊',
+        isQuestion: false,
+      }]
+    console.log('messageList.value', messageList.value)
   } else {
     console.log('可以根据id从本地存储中寻找聊天数据')
   }
@@ -158,7 +163,8 @@ onUnmounted(() => {
     <div>
       <div v-if="show" class="chat-box" ref="chatContainer">
         <div class="message-container" v-for="(msg, index) in messageList" :key="index">
-          <span :class="msg.isQuestion ? 'question-class' : 'answer-class'">
+          <span v-show="msg.content.trim()"
+                :class="msg.role !== 'system' ? 'question-class' : 'answer-class'">
             {{ msg.content }}
           </span>
         </div>
@@ -283,6 +289,7 @@ onUnmounted(() => {
   word-break: break-all;
   white-space: pre-wrap;
   line-height: 1.6;
+  overflow: hidden;
 }
 
 .question-class {

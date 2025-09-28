@@ -8,7 +8,7 @@ import HistorySession from "@/components/HistorySession.vue";
 import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
 import PromptImport from "@/components/PromptImport.vue";
 import {usePromptStore} from '@/stores/promptStore';
-import {getHistorySession, sendChatRequest} from '@/api/chatapi'
+import {getHistoryFromSession, sendChatRequest} from '@/api/chatapi'
 
 const promptStore = usePromptStore();
 
@@ -91,10 +91,10 @@ onMounted(async () => {
   //todo:获取历史聊天记录
   historyList.value = [];
 
-  //todo：服务器接口有问题
-  // const historySession = await getHistorySession()
-  // console.log('historySession', historySession)
-  console.log(historyList.value);
+
+  // const historyFormSession = await getHistoryFromSession(promptStore.sessionId)
+  // console.log('historySession', historyFormSession)
+  // console.log(historyList.value);
 })
 
 // 组件卸载时移除监听（避免内存泄漏）
@@ -106,11 +106,11 @@ onUnmounted(() => {
 
 const handleChatClick = () => {
 
+  //  主页打开的会话记录，默认加载当前的角色模型以及对应的聊天记录
   if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
     globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
   }
 
-  console.log(promptStore.systemPrompt);
   isExpanded.value = true;
   sessionId.value = null;
 }
@@ -135,15 +135,10 @@ const handleSend = async () => {
       globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
     }
 
-    //  todo: 1.
-
-    console.log('promptStore', promptStore.systemPrompt);
-
-    console.log('发送消息:', message.value);
 
     eventBus.emit('question-message', {
       content: message.value,
-      isQuestion: true,
+      role: 'user',
     });
 
 
@@ -153,12 +148,11 @@ const handleSend = async () => {
     });
 
 
-    // todo:此处发送请求给后端，可考虑通过socket进行通信
-    console.log('promptStore.systemPrompt', promptStore.systemPrompt)
     const params = {
       session_id: promptStore.sessionId,
       message: message.value,
       system_prompt: promptStore.systemPrompt,
+      role: 'system',
     }
 
     message.value = '';
@@ -168,8 +162,14 @@ const handleSend = async () => {
     if (result.code === 200) {
       eventBus.emit('answer-message', {
         content: result.data.response,
-        isQuestion: false,
+        role: 'system',
       });
+
+
+      // 此处应该先把回复的消息放入缓存
+      const historyFormSession = promptStore.historyFormSession;
+      promptStore.setHistoryFromSession(historyFormSession);
+
     }
 
 

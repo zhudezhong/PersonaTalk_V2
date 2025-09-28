@@ -42,6 +42,7 @@ import {ref, onMounted, onUnmounted} from 'vue';
 import eventBus from "@/utils/eventBus.js";
 import axios from "axios";
 import {usePromptStore} from "@/stores/promptStore.js";
+import {getHistoryFromSession, sendChatRequest} from "@/api/chatapi.js";
 
 // 响应式变量
 const isRecognizing = ref(false);
@@ -109,28 +110,41 @@ const startRecognition = () => {
         if (isRecognizing.value) {
           finalResult.value = currentSessionTranscript;
           // 重置当前会话，准备下一轮识别
-          console.log('识别结束，传送信息给后端')
           const promptStore = usePromptStore();
+          const session_id = promptStore.sessionId
 
+          console.log('session_id', session_id)
           try {
             // 准备请求数据
             const requestData = {
+              session_id: session_id,
               message: finalResult.value,
               system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
             };
 
-            console.log('requestData', requestData)
-
-            const response = await axios.post('/api/v1/chat/text_chat', requestData, {
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              timeout: 30000,
+            eventBus.emit('question-message', {
+              content: finalResult.value,
+              role: 'user',
             });
 
-            if (response.data) {
-              console.log('接口调用成功，响应数据：', response.data);
-              // 对响应数据进行后续处理，比如更新页面等
+
+            const response = await sendChatRequest(requestData)
+
+            if (response.code === 200) {
+
+              eventBus.emit('answer-message', {
+                session_id: response.data.session_id,
+                content: response.data.response,
+                role: 'system',
+              });
+
+              isRecognizing.value = true;
+              await promptStore.setSessionId(session_id);
+
+              // 此处应该先把回复的消息放入缓存
+              const historyFormSession = promptStore.historyFormSession;
+              console.log('historyFormSession', historyFormSession)
+              promptStore.setHistoryFromSession(historyFormSession);
             }
           } catch (error) {
             // 错误处理
@@ -248,11 +262,14 @@ const handleExportPrompt = async () => {
     console.error('复制内容时出现错误:', error);
   }
 }
+const beginRecognize = () => {
+  isRecognizing.value = true
+}
 
+eventBus.on('beginRecognize', beginRecognize);
 
 // 生命周期
 onMounted(() => {
-  // statusMsg.value = '正在请求麦克风权限...';
   setTimeout(() => {
     recognition = initRecognition();
     if (recognition) startRecognition();

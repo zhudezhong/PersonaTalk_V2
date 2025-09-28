@@ -15,8 +15,6 @@ const props = defineProps<{
   characterInfo: characterInfo
 }>()
 const imgUrl = `@/assets/imgs/${props.characterInfo.img}`;
-console.log('characterInfo', props.characterInfo.img)
-console.log('imgUrl', imgUrl)
 
 const instance = getCurrentInstance();
 const globalProperties = instance?.appContext.config.globalProperties;

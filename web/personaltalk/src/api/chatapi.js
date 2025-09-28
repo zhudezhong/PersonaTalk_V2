@@ -48,15 +48,15 @@ export const sendChatRequest = async (params) => {
 };
 
 
-export const getHistorySession = async () => {
+export const getHistoryFromSession = async (session_id) => {
 
-  const response = await apiClient.get('/api/v1/sessions/history_session');
+  const response = await apiClient.get(`/api/v1/sessions/${session_id}/chats`);
 
   return response.data;
 
 }
 
 export default {
-  sendChatRequest, getHistorySession
+  sendChatRequest, getHistoryFromSession
 
 };

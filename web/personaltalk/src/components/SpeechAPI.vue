@@ -1,5 +1,6 @@
 <template>
   <div class="speech-container">
+
     <!-- 实时识别内容显示区 -->
     <div class="realtime-box" v-show="realtimeTranscript">
       <p class="realtime-text">{{ realtimeTranscript }}</p>
@@ -24,6 +25,8 @@
         @click="handleHangUp"
       >
         <i class="iconfont icon-guaduan"></i>
+
+
       </button>
 
       <button title="复制模型prompt"
@@ -43,6 +46,7 @@ import eventBus from "@/utils/eventBus.js";
 import axios from "axios";
 import {usePromptStore} from "@/stores/promptStore.js";
 import {getHistoryFromSession, sendChatRequest} from "@/api/chatapi.js";
+import Loading from "@/components/Loading.vue";
 
 // 响应式变量
 const isRecognizing = ref(false);
@@ -113,7 +117,6 @@ const startRecognition = () => {
           const promptStore = usePromptStore();
           const session_id = promptStore.sessionId
 
-          console.log('session_id', session_id)
           try {
             // 准备请求数据
             const requestData = {

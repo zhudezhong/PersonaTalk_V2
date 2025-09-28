@@ -79,7 +79,6 @@ const hangUp = () => {
   goBack();
 };
 
-//todo:设置sessionStorage:connectingTime，当用户刷新页面之后恢复上下文以及连接时长
 onMounted(async () => {
   const promptStore = usePromptStore();
   console.log('promptStore.systemPrompt', promptStore.systemPrompt)

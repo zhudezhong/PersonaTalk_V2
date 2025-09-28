@@ -7,7 +7,12 @@ import App from './App.vue'
 import router from './router'
 import {usePromptStore} from "@/stores/promptStore.js";
 
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+
+
 const app = createApp(App)
+app.use(ElementPlus) // 注册后可全局使用
 
 app.use(createPinia())
 app.use(router)

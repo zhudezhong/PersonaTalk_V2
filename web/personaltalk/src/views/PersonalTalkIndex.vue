@@ -38,7 +38,7 @@ const handleCustomCharacterSubmit = (characterData: any) => {
 
 const isExpanded = ref(false);
 const message = ref('');
-const historyList = ref<Array<{ listName: string; Id: number }>>([]);
+const historyList = ref<Array<{ listName: string; id: number }>>([]);
 
 const handleCreateNewSession = async (): Promise<void> => {
   promptStore.clearSessionId()
@@ -218,7 +218,7 @@ const handleSend = async () => {
 
     historyList.value.unshift({
       listName: message.value,
-      Id: Date.now()  // 使用时间戳确保ID唯一
+      id: Date.now()  // 使用时间戳确保ID唯一
     });
 
 

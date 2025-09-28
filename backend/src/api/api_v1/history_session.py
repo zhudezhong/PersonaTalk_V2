@@ -55,14 +55,13 @@ async def create_history_session(
     return session
 
 
-@router.get("/history_session", response_model=List[HistorySessionResponse])
+@router.get("/history_session", response_model=ApiResponse[List[HistorySession]])
 async def get_history_session(
     *,
     db: AsyncSession = Depends(get_db),
-    username: Optional[str] = Query(default="admin", description="用户名"),
     page: int = Query(0, ge=0, description="跳过的记录数"),
     page_size: int = Query(20, ge=1, le=1000, description="限制返回的记录数"),
-) -> List[HistorySession]:
+) -> ApiResponse[List[HistorySession]]:
     """
     根据用户名获取历史会话列表
     
@@ -75,8 +74,13 @@ async def get_history_session(
     Returns:
         List[HistorySession]: 历史会话列表
     """
+    username: str = "admin"
     sessions = await crud_history_session.get_multi(db=db, username=username, page=page, page_size=page_size)
-    return sessions
+    return ApiResponse(
+        code=ResponseCode.SUCCESS,
+        message=f"成功获取用户 {username} 的历史会话列表，共 {len(sessions)} 条",
+        data=sessions
+    )
 
 @router.get("/{session_id}/chats", response_model=ApiResponse[ChatHistoryResponseData])
 async def get_history_chat_by_session_id(
@@ -131,8 +135,8 @@ async def get_history_chat_by_session_id(
         
         return ApiResponse(
             code=ResponseCode.SUCCESS,
-            data=response_data, 
-            message=f"成功获取会话 {session_id} 的聊天记录，共 {len(chat_records)} 条"
+            message=f"成功获取会话 {session_id} 的聊天记录，共 {len(chat_records)} 条",
+            data=response_data
         )
         
     except Exception as e:

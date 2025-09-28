@@ -28,7 +28,7 @@ router = APIRouter()
 
 class ChatRequestModel(BaseModel):
     """聊天请求模型"""
-    session_id: Optional[str] = Field(None, description="会话ID，如果不存在则创建新会话")
+    session_id: Optional[str] = Field("", description="会话ID，如果不存在则创建新会话")
     message: str = Field(description="用户消息")
     system_prompt: Optional[str] = Field(default="", description="系统提示词")
     voice_type: Optional[str] = Field(default="qiniu_zh_female_wwxkjx", description="当前角色的音色类型")
@@ -102,7 +102,7 @@ async def chat_completions(
             if not session:
                 # 会话不存在，创建新会话
                 session_id = None
-            system_prompt = session.system_prompt
+            system_prompt = session.system_prompt if session.system_prompt else ""
         
         if not session_id:
             # 创建新会话

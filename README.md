@@ -407,6 +407,9 @@ poetry run mypy src/
 - 项目维护者: 朱德中 宗灵恩 滕柳明
 - 项目链接: [https://github.com/MECREATOR/PersonaTalk](https://github.com/MECREATOR/PersonaTalk)
 
+DEMO：通过网盘分享的文件：
+链接: https://pan.baidu.com/s/1XHNRl5IJnnDi6WCEr6ZyDA 提取码: 1x4y 复制这段内容后打开百度网盘手机App，操作更方便哦
+
 ---
 
 **PersonaTalk Backend** - 让 AI 对话更有趣！ 🚀

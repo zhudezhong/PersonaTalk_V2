@@ -15,7 +15,7 @@ const props = defineProps<{
 const {historyList} = toRefs(props)
 
 // 给 isActivity 明确联合类型，避免类型模糊
-const isActivity = ref<'createNew' | 'search'>('createNew')
+const isActivity = ref<'createNew' | 'search'>('search')
 
 // 初始化 activityList 为 null（明确类型）
 const activityList = ref<number | null>(null)
@@ -57,7 +57,7 @@ const handleSearch = (keyword = '') => {
   if (trimmedKeyword) {
     filteredHistoryList.value = sourceList.filter(item =>
       // 加 item.listName 空值判断，避免 item 结构异常导致报错
-      (item.listName || '').toLowerCase().includes(trimmedKeyword)
+      (item.session_name || '').toLowerCase().includes(trimmedKeyword)
     )
   } else {
     filteredHistoryList.value = [...sourceList]
@@ -119,19 +119,19 @@ const handleSearchClick = () => {
     :class="[isShow ? 'history-session-not-show' : 'history-session-show']"
   >
     <div class="controls-container">
-      <div
-        @click="handleCreateNewSession"
-        class="control-button create-button"
-        :class="{'expanded': isActivity === 'createNew'}"
-      >
-        <span v-if="isActivity === 'createNew'">
-          创建新对话
-          <i class="iconfont icon-bianjixiaoxi"></i>
-        </span>
-        <span v-else>
-          <i class="iconfont icon-bianjixiaoxi"></i>
-        </span>
-      </div>
+      <!--      <div-->
+      <!--        @click="handleCreateNewSession"-->
+      <!--        class="control-button create-button"-->
+      <!--        :class="{'expanded': isActivity === 'createNew'}"-->
+      <!--      >-->
+      <!--        &lt;!&ndash;        <span v-if="isActivity === 'createNew'">&ndash;&gt;-->
+      <!--        &lt;!&ndash;          创建新对话&ndash;&gt;-->
+      <!--        &lt;!&ndash;          <i class="iconfont icon-bianjixiaoxi"></i>&ndash;&gt;-->
+      <!--        &lt;!&ndash;        </span>&ndash;&gt;-->
+      <!--        <span>-->
+      <!--          <i class="iconfont icon-bianjixiaoxi"></i>-->
+      <!--        </span>-->
+      <!--      </div>-->
 
       <div
         class="control-button search-button"
@@ -146,11 +146,13 @@ const handleSearchClick = () => {
             class="search-input"
             @keyup.enter="handleSearch(searchValue)"
           >
-        </template>
-        <template v-else>
-          <i style="position: absolute;left: 11px;top: 2px;"
+
+          <i style="position: absolute;right: 11px;top: 2px;"
              class="iconfont icon-sousuo"></i>
         </template>
+        <!--        <template>-->
+
+        <!--        </template>-->
       </div>
     </div>
 
@@ -162,7 +164,11 @@ const handleSearchClick = () => {
         :class="[activityList === list?.id ? 'history-list-active' : '']"
         @click="handleChooseHistory(list)"
       >
-        <span style="margin-right: 5px">@</span>
+        <span style="margin-right: 5px">
+          <span>
+            <i class="iconfont icon-bianjixiaoxi"></i>
+          </span>
+        </span>
         {{ list?.session_name || '' }}
       </div>
 
@@ -239,7 +245,7 @@ const handleSearchClick = () => {
 }
 
 .control-button.expanded {
-  width: 200px;
+  width: 250px;
 }
 
 .history-content {

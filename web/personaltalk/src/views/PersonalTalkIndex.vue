@@ -120,6 +120,7 @@ const messageList = ref([])
 onMounted(async () => {
   const histories = await getHistorySessionList();
   historyList.value = histories.data;
+  console.log(historyList.value)
 
   messageList.value = promptStore.historyFormSession
   //  获取语音列表

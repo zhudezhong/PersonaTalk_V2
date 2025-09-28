@@ -12,7 +12,13 @@ const props = defineProps<{
     personality: string;
     languageStyle: string;
     background: string;
+    voiceType: string; // 预填音色字段
   };
+
+  voiceOptions: {
+    label: string; // 下拉框显示文本
+    value: string; // 选项对应的值
+  }[];
 }>();
 
 // 定义emits：关闭弹窗、提交角色信息
@@ -24,6 +30,7 @@ const emit = defineEmits<{
     personality: string;
     languageStyle: string;
     background: string;
+    voiceType: string; // 新增提交音色字段
   }): void;
 }>();
 
@@ -34,6 +41,7 @@ const form = ref({
   personality: '',
   languageStyle: '',
   background: '',
+  voiceType: '', // 新增音色字段
 });
 
 // 表单验证状态
@@ -54,7 +62,14 @@ watch(() => props.prefillData, (newVal) => {
 const handleClose = () => {
   emit('close');
   // 重置表单，避免下次打开残留数据
-  form.value = {name: '', source: '', personality: '', languageStyle: '', background: ''};
+  form.value = {
+    name: '',
+    source: '',
+    personality: '',
+    languageStyle: '',
+    background: '',
+    voiceType: ''
+  };
   formErrors.value = {name: false, personality: false, background: false};
 };
 
@@ -113,18 +128,43 @@ const clearError = (field: keyof typeof formErrors.value) => {
           </div>
 
           <div class="modal-form">
-            <!-- 角色名称 -->
-            <div class="form-item">
-              <label class="form-label">角色名称 <span class="required">*</span></label>
-              <input
-                type="text"
-                v-model="form.name"
-                class="form-input"
-                placeholder="输入角色名称（如：孙悟空）"
-                @input="clearError('name')"
-                :class="{ 'error': formErrors.name }"
-              >
-              <p class="error-text" v-if="formErrors.name">角色名称为必填项</p>
+            <!-- 角色名称和音色下拉框 -->
+            <div class="form-item name-voice-wrapper"
+                 style="display: flex;flex-direction: row; align-items: center;">
+              <div style="width: 50%;margin-right: 10px">
+                <label class="form-label">角色名称 <span class="required">*</span></label>
+                <div class="name-voice-row">
+                  <input
+                    type="text"
+                    v-model="form.name"
+                    class="form-input name-input"
+                    placeholder="输入角色名称（如：孙悟空）"
+                    @input="clearError('name')"
+                    :class="{ 'error': formErrors.name }"
+                  >
+
+                </div>
+              </div>
+              <div style="width: 50%;margin-left: 20px">
+                <p class="error-text" v-if="formErrors.name">角色名称为必填项</p>
+
+                <div class="voice-select-wrapper">
+                  <label class="form-label voice-label">选择音色</label>
+                  <select
+                    v-model="form.voiceType"
+                    class="form-select"
+                  >
+                    <option value="">请选择音色</option>
+                    <option
+                      v-for="item in props.voiceOptions"
+                      :key="item.voice_type"
+                      :value="item.voice_type"
+                    >
+                      {{ item.voice_name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <!-- 角色来源 -->
@@ -294,7 +334,8 @@ const clearError = (field: keyof typeof formErrors.value) => {
 }
 
 .form-input,
-.form-textarea {
+.form-textarea,
+.form-select {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #ddd;
@@ -304,8 +345,10 @@ const clearError = (field: keyof typeof formErrors.value) => {
   transition: border-color 0.3s;
 }
 
+
 .form-input:focus,
-.form-textarea:focus {
+.form-textarea:focus,
+.form-select:focus {
   outline: none;
   border-color: #3B82F6;
 }
@@ -350,5 +393,57 @@ const clearError = (field: keyof typeof formErrors.value) => {
 
 .submit-btn:hover {
   background-color: #555 !important;
+}
+
+/* 新增音色下拉框相关样式 */
+.name-voice-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.name-voice-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.name-input {
+  flex: 1;
+}
+
+.voice-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.voice-label {
+  margin-bottom: 8px;
+}
+
+.form-select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+}
+
+
+.form-select option {
+  padding: 10px;
+  background-color: #fff;
+  transition: all 0.3s;
+}
+
+
+.form-select option:hover {
+  color: #3B82F6;
+  background-color: #4ba5ff;
+
+}
+
+
+.form-select option:checked {
+  background-color: #e6f7ff;
+  color: #3B82F6;
 }
 </style>

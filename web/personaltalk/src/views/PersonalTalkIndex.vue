@@ -8,7 +8,7 @@ import HistorySession from "@/components/HistorySession.vue";
 import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
 import PromptImport from "@/components/PromptImport.vue";
 import {usePromptStore} from '@/stores/promptStore';
-import {getHistoryFromSession, sendChatRequest} from '@/api/chatapi'
+import {getHistoryFromSession, getVoiceList, sendChatRequest} from '@/api/chatapi'
 
 const promptStore = usePromptStore();
 
@@ -86,12 +86,17 @@ eventBus.on('createNewSession', handleCreateNewSession)
 eventBus.on('openHistorySession', openHistorySession)
 eventBus.on('updateCharacterPrompt', updateCharacterPrompt)
 
+const voiceOptions = ref([])
 
 onMounted(async () => {
   //todo:获取历史聊天记录
   historyList.value = [];
 
+  //  获取语音列表
+  const voiceList = await getVoiceList();
+  voiceOptions.value = voiceList.data
 
+  console.log('voiceOptions.value', voiceOptions.value);
   // const historyFormSession = await getHistoryFromSession(promptStore.sessionId)
   // console.log('historySession', historyFormSession)
   // console.log(historyList.value);
@@ -269,6 +274,7 @@ const SherlockHolmes: CharacterPrompt = {
 
   <CustomCharacterModal
     :visible="isModalVisible"
+    :voice-options="voiceOptions"
     @close="isModalVisible = false"
     @submit="handleCustomCharacterSubmit"
   />

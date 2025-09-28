@@ -56,6 +56,12 @@ export const getHistoryFromSession = async (session_id) => {
 
 }
 
+export const getVoiceList = async () => {
+  const response = await apiClient.get(`/api/v1/chat/voice_list`);
+
+  return response.data;
+}
+
 export default {
   sendChatRequest, getHistoryFromSession
 

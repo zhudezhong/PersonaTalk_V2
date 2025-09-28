@@ -20,8 +20,11 @@ class Settings(BaseSettings):
 
     # 大模型相关配置
     OPENAI_API_KEY: str = ""
-    OPENAI_BASE_URL: str = ""
+    OPENAI_BASE_URL: str = "https://openai.qiniu.com"
     OPENAI_MODEL: str = ""
+
+    # TTS服务相关配置
+    TTS_MODEL: str = "tts"
     
     # 模型服务配置
     MODEL_SERVICE_TYPE: str = "qiniu"  # 默认使用七牛云

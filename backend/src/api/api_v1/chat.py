@@ -15,6 +15,7 @@ from src.crud.crud_history_session import HistorySessionCreate, crud_history_ses
 from src.api.deps import get_db
 from src.crud.crud_history_chat import HistoryChatCreate
 from src.model.history_chat import ChatRole
+from src.model_server import tts_service
 
 import json
 import time
@@ -317,6 +318,16 @@ async def chat_completions_stream(
         }
     )
 
+@router.get("/voice_list", response_model=ApiResponse[List[dict]])
+async def get_voice_list():
+    voice_list = await tts_service.get_voice_list()
+    # 将VoiceInfo对象转换为字典格式
+    voice_dict_list = [voice.model_dump() for voice in voice_list]
+    return ApiResponse(
+        code=ResponseCode.SUCCESS,
+        message="获取音色列表成功",
+        data=voice_dict_list
+    )
 
 # 修改其他端点使用统一响应格式
 @router.get("/models", response_model=ApiResponse[List[dict]])

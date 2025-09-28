@@ -108,7 +108,7 @@ class TTSModelService(BaseModelService):
             Exception: 请求失败时抛出异常
         """
         session = await self._get_session()
-        url = f"{self.base_url.rstrip('/')}/voice/list"
+        url = f"{self.base_url.rstrip('/')}/v1/voice/list"
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -160,7 +160,7 @@ class TTSModelService(BaseModelService):
             Exception: 请求失败时抛出异常
         """
         session = await self._get_session()
-        url = f"{self.base_url.rstrip('/')}/voice/tts"
+        url = f"{self.base_url.rstrip('/')}/v1/voice/tts"
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -229,6 +229,13 @@ class TTSModelService(BaseModelService):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """异步上下文管理器出口"""
         await self.close()
+
+from src.config import settings
+tts_service = TTSModelService(
+    api_key=settings.OPENAI_API_KEY,
+    base_url=settings.OPENAI_BASE_URL,
+    model=settings.TTS_MODEL
+)
 
 async def main():
     service = TTSModelService(

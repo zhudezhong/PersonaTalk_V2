@@ -7,7 +7,7 @@ from .base import BaseModelService, ChatRequest, ChatResponse, StreamResponse, C
 from .openai_service import OpenAIModelService
 from .factory import ModelServiceFactory, ModelServiceManager, model_service_manager
 from .deps import get_model_service, get_model_service_manager, init_model_service, ModelService, ModelServiceManagerDep
-
+from .tts_service import tts_service
 __all__ = [
     "BaseModelService",
     "ChatRequest", 
@@ -22,5 +22,6 @@ __all__ = [
     "get_model_service_manager", 
     "init_model_service",
     "ModelService",
-    "ModelServiceManagerDep"
+    "ModelServiceManagerDep",
+    "tts_service"
 ]

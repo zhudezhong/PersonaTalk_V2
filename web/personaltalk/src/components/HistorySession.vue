@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {ref, defineProps, onMounted, toRefs, watch} from "vue";
 import eventBus from '@/utils/eventBus'
+import {usePromptStore} from "@/stores/promptStore.js";
 
 interface HistoryItem {
-  Id: number
+  id: number
   listName: string
 }
 
@@ -30,7 +31,7 @@ watch(historyList, (newList = []) => { // 给 newList 加默认空数组，避�
   filteredHistoryList.value = [...newList]
   // 无选中项且列表有数据时，自动选中第一项
   if (activityList.value === null && newList.length > 0) {
-    activityList.value = newList[0].Id
+    activityList.value = newList[0].id
   }
 }, {immediate: true})
 
@@ -45,7 +46,7 @@ onMounted(() => {
   // 初始化选中逻辑（加空数组判断）
   const initList = historyList.value || []
   if (initList.length > 0 && activityList.value === null) {
-    activityList.value = initList[0].Id
+    activityList.value = initList[0].id
   }
 })
 
@@ -62,9 +63,12 @@ const handleSearch = (keyword = '') => {
     filteredHistoryList.value = [...sourceList]
   }
 }
+const promptStore = usePromptStore();
 
 const handleCreateNewSession = () => {
   isActivity.value = 'createNew'
+  promptStore.clearSessionId()
+  console.log('promptStore', promptStore.sessionId)
   eventBus.emit('createNewSession')
 
   // 重置搜索值为明确空字符串
@@ -72,10 +76,15 @@ const handleCreateNewSession = () => {
   filteredHistoryList.value = [...(historyList.value || [])]
 }
 
-const handleChooseHistory = (item: HistoryItem) => {
-  // 加 item 存在性判断，避免空值触发
-  if (item && item.Id) {
-    activityList.value = item.Id
+
+const handleChooseHistory = async (item: HistoryItem) => {
+  console.log('item.id', item.id)
+
+  await promptStore.setSessionId(item.id)
+  if (item && item.id) {
+    activityList.value = item.id
+    //  修改store状态，打开这个对话
+
     eventBus.emit('openHistorySession', item)
   }
 }
@@ -149,12 +158,12 @@ const handleSearchClick = () => {
       <div
         class="history-list"
         v-for="list in (filteredHistoryList || [])"
-        :key="list?.Id"
-        :class="[activityList === list?.Id ? 'history-list-active' : '']"
+        :key="list?.id"
+        :class="[activityList === list?.id ? 'history-list-active' : '']"
         @click="handleChooseHistory(list)"
       >
         <span style="margin-right: 5px">@</span>
-        {{ list?.listName || '' }}
+        {{ list?.session_name || '' }}
       </div>
 
       <div

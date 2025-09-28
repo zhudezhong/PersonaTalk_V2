@@ -3,7 +3,7 @@ import {ref, defineProps, defineEmits, watch} from 'vue';
 import CusButton from "@/components/CusButton.vue";
 import router from '@/router';
 
-// 定义props：接收弹窗显示状态和预填数据
+// 定义props：接收弹窗显示状态、预填数据和音色选项（包含音频地址）
 const props = defineProps<{
   visible: boolean;
   prefillData?: {
@@ -14,10 +14,10 @@ const props = defineProps<{
     background: string;
     voiceType: string; // 预填音色字段
   };
-
   voiceOptions: {
-    label: string; // 下拉框显示文本
-    value: string; // 选项对应的值
+    voice_name: string;
+    voice_type: string;
+    audio_url: string; // 新增：音频播放地址
   }[];
 }>();
 
@@ -30,7 +30,7 @@ const emit = defineEmits<{
     personality: string;
     languageStyle: string;
     background: string;
-    voiceType: string; // 新增提交音色字段
+    voiceType: string; // 提交音色字段
   }): void;
 }>();
 
@@ -41,8 +41,12 @@ const form = ref({
   personality: '',
   languageStyle: '',
   background: '',
-  voiceType: '', // 新增音色字段
+  voiceType: '', // 音色字段
 });
+
+// 播放状态管理（记录当前正在播放的音频索引）
+const playingIndex = ref<number | null>(null);
+const audioRefs = ref<HTMLAudioElement[]>([]); // 音频元素引用
 
 // 表单验证状态
 const formErrors = ref({
@@ -61,7 +65,9 @@ watch(() => props.prefillData, (newVal) => {
 // 关闭弹窗
 const handleClose = () => {
   emit('close');
-  // 重置表单，避免下次打开残留数据
+  // 停止所有音频播放
+  stopAllAudio();
+  // 重置表单
   form.value = {
     name: '',
     source: '',
@@ -71,34 +77,85 @@ const handleClose = () => {
     voiceType: ''
   };
   formErrors.value = {name: false, personality: false, background: false};
+  playingIndex.value = null;
+};
+
+// 音频播放控制
+const playAudio = (index: number, url: string) => {
+  // 停止当前正在播放的音频
+  if (playingIndex.value !== null && playingIndex.value !== index) {
+    stopAudio(playingIndex.value);
+  }
+
+  // 创建或获取音频元素
+  if (!audioRefs.value[index]) {
+    audioRefs.value[index] = new Audio(url);
+    // 音频结束时更新状态
+    audioRefs.value[index].onended = () => {
+      if (playingIndex.value === index) {
+        playingIndex.value = null;
+      }
+    };
+  }
+
+  const audio = audioRefs.value[index];
+  if (playingIndex.value === index) {
+    // 暂停当前播放
+    audio.pause();
+    playingIndex.value = null;
+  } else {
+    // 播放新音频
+    audio.src = url;
+    console.log(audio.src)
+    audio.play().catch(error => {
+      console.error('音频播放失败:', error);
+      playingIndex.value = null;
+    });
+    playingIndex.value = index;
+  }
+};
+
+// 停止指定索引的音频
+const stopAudio = (index: number) => {
+  if (audioRefs.value[index]) {
+    audioRefs.value[index].pause();
+  }
+};
+
+// 停止所有音频
+const stopAllAudio = () => {
+  audioRefs.value.forEach(audio => {
+    if (audio) audio.pause();
+  });
+  playingIndex.value = null;
 };
 
 // 表单验证
 const validateForm = (): boolean => {
-  let isvalid = true;
+  let isValid = true;
   // 验证必填项
   if (!form.value.name.trim()) {
     formErrors.value.name = true;
-    isvalid = false;
+    isValid = false;
   } else {
     formErrors.value.name = false;
   }
 
   if (!form.value.personality.trim()) {
     formErrors.value.personality = true;
-    isvalid = false;
+    isValid = false;
   } else {
     formErrors.value.personality = false;
   }
 
   if (!form.value.background.trim()) {
     formErrors.value.background = true;
-    isvalid = false;
+    isValid = false;
   } else {
     formErrors.value.background = false;
   }
 
-  return isvalid;
+  return isValid;
 };
 
 // 提交表单
@@ -106,7 +163,6 @@ const handleSubmit = () => {
   if (validateForm()) {
     emit('submit', {...form.value});
     handleClose(); // 提交后关闭弹窗
-
     router.push({path: '/SpokenDialogue'});
   }
 };
@@ -115,6 +171,19 @@ const handleSubmit = () => {
 const clearError = (field: keyof typeof formErrors.value) => {
   formErrors.value[field] = false;
 };
+
+// 组件卸载时清理音频
+const cleanupAudio = () => {
+  stopAllAudio();
+  audioRefs.value = [];
+};
+
+// 监听组件卸载
+watch(() => props.visible, (newVal) => {
+  if (!newVal) {
+    cleanupAudio();
+  }
+});
 </script>
 
 <template>
@@ -129,40 +198,56 @@ const clearError = (field: keyof typeof formErrors.value) => {
 
           <div class="modal-form">
             <!-- 角色名称和音色下拉框 -->
-            <div class="form-item name-voice-wrapper"
-                 style="display: flex;flex-direction: row; align-items: center;">
-              <div style="width: 50%;margin-right: 10px">
+            <div class="form-item name-voice-wrapper">
+              <div class="name-column">
                 <label class="form-label">角色名称 <span class="required">*</span></label>
-                <div class="name-voice-row">
-                  <input
-                    type="text"
-                    v-model="form.name"
-                    class="form-input name-input"
-                    placeholder="输入角色名称（如：孙悟空）"
-                    @input="clearError('name')"
-                    :class="{ 'error': formErrors.name }"
-                  >
-
-                </div>
-              </div>
-              <div style="width: 50%;margin-left: 20px">
+                <input
+                  type="text"
+                  v-model="form.name"
+                  class="form-input"
+                  placeholder="输入角色名称（如：孙悟空）"
+                  @input="clearError('name')"
+                  :class="{ 'error': formErrors.name }"
+                >
                 <p class="error-text" v-if="formErrors.name">角色名称为必填项</p>
-
-                <div class="voice-select-wrapper">
-                  <label class="form-label voice-label">选择音色</label>
+              </div>
+              <div class="voice-column">
+                <label class="form-label">选择音色</label>
+                <div class="voice-selector">
                   <select
                     v-model="form.voiceType"
                     class="form-select"
                   >
                     <option value="">请选择音色</option>
                     <option
-                      v-for="item in props.voiceOptions"
+                      v-for="(item, index) in props.voiceOptions"
                       :key="item.voice_type"
                       :value="item.voice_type"
                     >
                       {{ item.voice_name }}
                     </option>
                   </select>
+
+                  <!-- 音色试听列表 -->
+                  <div class="voice-preview-list">
+                    <div
+                      v-for="(item, index) in props.voiceOptions"
+                      :key="item.voice_type"
+                      class="voice-preview-item"
+                    >
+                      <span class="voice-name">{{ item.voice_name }}</span>
+                      <button
+                        class="play-btn"
+                        @click="playAudio(index, item.url)"
+                        :class="{ 'playing': playingIndex === index }"
+                        aria-label="播放音频"
+                      >
+                        <i class="icon">
+                          {{ playingIndex === index ? '⏸' : '▶' }}
+                        </i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -228,7 +313,6 @@ const clearError = (field: keyof typeof formErrors.value) => {
   </transition>
 </template>
 
-
 <style scoped>
 .overlay-enter-from {
   opacity: 0;
@@ -283,7 +367,6 @@ const clearError = (field: keyof typeof formErrors.value) => {
   border: 2px solid #333;
 }
 
-/* 其他原有样式保持不变 */
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -345,7 +428,6 @@ const clearError = (field: keyof typeof formErrors.value) => {
   transition: border-color 0.3s;
 }
 
-
 .form-input:focus,
 .form-textarea:focus,
 .form-select:focus {
@@ -395,55 +477,99 @@ const clearError = (field: keyof typeof formErrors.value) => {
   background-color: #555 !important;
 }
 
-/* 新增音色下拉框相关样式 */
+/* 角色名称和音色布局 */
 .name-voice-wrapper {
   display: flex;
-  flex-direction: column;
-}
-
-.name-voice-row {
-  display: flex;
   gap: 20px;
-  align-items: flex-start;
 }
 
-.name-input {
+.name-column,
+.voice-column {
   flex: 1;
 }
 
-.voice-select-wrapper {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.voice-label {
-  margin-bottom: 8px;
-}
-
+/* 下拉框样式 */
 .form-select {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #ddd;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M6 8L0 0h12L6 8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  padding-right: 32px;
+  margin-bottom: 12px;
 }
-
 
 .form-select option {
   padding: 10px;
   background-color: #fff;
-  transition: all 0.3s;
 }
 
-
-.form-select option:hover {
-  color: #3B82F6;
-  background-color: #4ba5ff;
-
+/* 音频播放列表样式 */
+.voice-selector {
+  display: flex;
+  flex-direction: column;
 }
 
+.voice-preview-list {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  background-color: #fafafa;
+}
 
-.form-select option:checked {
-  background-color: #e6f7ff;
+.voice-preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.voice-preview-item:hover {
+  background-color: #f0f7ff;
+}
+
+.voice-name {
+  font-size: 13px;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.play-btn {
+  background-color: transparent;
+  border: 1px solid #3B82F6;
   color: #3B82F6;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  transition: all 0.2s;
+}
+
+.play-btn.playing {
+  background-color: #3B82F6;
+  color: white;
+}
+
+.play-btn:hover {
+  background-color: #f0f7ff;
+}
+
+.play-btn.playing:hover {
+  background-color: #2563eb;
 }
 </style>

@@ -18,14 +18,14 @@ const apiClient = axios.create({
 export const sendChatRequest = async (params) => {
   try {
 
-    console.log('params', params)
-    // 可以在这里对参数进行二次处理，比如确保类型正确
+    console.log('params', params);
     const requestData = {
       session_id: params.session_id || '',
       message: params.message || '',
       system_prompt: params.system_prompt || ''
     };
 
+    console.log('requestData', requestData)
 
     const response = await apiClient.post('/api/v1/chat/text_chat', requestData);
 
@@ -58,6 +58,12 @@ export const getHistoryFromSession = async (session_id) => {
 
 export const getVoiceList = async () => {
   const response = await apiClient.get(`/api/v1/chat/voice_list`);
+
+  return response.data;
+}
+
+export const getHistorySessionList = async () => {
+  const response = await apiClient.get(`/api/v1/sessions/history_session`);
 
   return response.data;
 }

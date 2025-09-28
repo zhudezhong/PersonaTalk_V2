@@ -8,7 +8,12 @@ import HistorySession from "@/components/HistorySession.vue";
 import CustomCharacterModal from "@/components/CustomCharacterModal.vue";
 import PromptImport from "@/components/PromptImport.vue";
 import {usePromptStore} from '@/stores/promptStore';
-import {getHistoryFromSession, getVoiceList, sendChatRequest} from '@/api/chatapi'
+import {
+  getHistorySessionList,
+  getHistoryFromSession,
+  getVoiceList,
+  sendChatRequest
+} from '@/api/chatapi'
 
 const promptStore = usePromptStore();
 
@@ -35,16 +40,40 @@ const isExpanded = ref(false);
 const message = ref('');
 const historyList = ref<Array<{ listName: string; Id: number }>>([]);
 
-const handleCreateNewSession = () => {
+const handleCreateNewSession = async (): Promise<void> => {
+  promptStore.clearSessionId()
+  promptStore.clearHistoryFormSession()
+  promptStore.systemPrompt = ''
+
+
   isExpanded.value = true;
 }
 
 const sessionId = ref<number | null>(null);
-
-const openHistorySession = (item: { Id: number }) => {
+const chatBoxRef = ref(null);
+// 主组件中，修改 openHistorySession 方法
+const openHistorySession = async (item: { Id: number }) => {
+  //  基础逻辑：展开ChatBox、记录当前会话ID
   isExpanded.value = true;
   sessionId.value = item.Id;
-}
+
+  //  关键新增：调用接口拉取该会话的历史消息
+  try {
+    const response = await getHistoryFromSession(item.Id); // 后端接口：根据会话ID查消息
+    if (response.code === 200) {
+      //  同步消息到Store：更新 historyFormSession
+      promptStore.setHistoryFromSession(response.data); // 假设response.data是消息数组
+      console.log('拉取到的历史消息：', response.data);
+    }
+  } catch (error) {
+    console.error('拉取历史消息失败：', error);
+  }
+
+  // 4. 强制刷新ChatBox（可选，确保DOM更新）
+  if (chatBoxRef.value) {
+    chatBoxRef.value.$forceUpdate();
+  }
+};
 
 const updateCharacterPrompt = (name: any | object, isImport: boolean = false) => {
   if (isImport) {
@@ -87,19 +116,18 @@ eventBus.on('openHistorySession', openHistorySession)
 eventBus.on('updateCharacterPrompt', updateCharacterPrompt)
 
 const voiceOptions = ref([])
-
+const messageList = ref([])
 onMounted(async () => {
-  //todo:获取历史聊天记录
-  historyList.value = [];
+  const histories = await getHistorySessionList();
+  historyList.value = histories.data;
 
+  messageList.value = promptStore.historyFormSession
   //  获取语音列表
   const voiceList = await getVoiceList();
   voiceOptions.value = voiceList.data
 
   console.log('voiceOptions.value', voiceOptions.value);
-  // const historyFormSession = await getHistoryFromSession(promptStore.sessionId)
-  // console.log('historySession', historyFormSession)
-  // console.log(historyList.value);
+
 })
 
 // 组件卸载时移除监听（避免内存泄漏）
@@ -134,7 +162,47 @@ const handlePromptImportSubmit = (prompt: any) => {
 
 // 处理发送消息
 const handleSend = async () => {
-  if (message.value.trim()) {
+  console.log('message', message.value)
+
+  console.log('promptStore.systemPrompt', promptStore.systemPrompt)
+  if (!promptStore.systemPrompt) {
+
+    eventBus.emit('question-message', {
+      content: message.value,
+      role: 'user',
+    });
+
+    console.log('promptStore.sessionId', promptStore.sessionId)
+
+    //  没有场景、无prompt
+    const params = {
+      session_id: promptStore.sessionId,
+      message: message.value,
+      system_prompt: promptStore.systemPrompt
+    }
+    message.value = ''
+    const response = await sendChatRequest(params)
+
+
+    if (response.code === 200) {
+
+      eventBus.emit('answer-message', {
+        content: response.data.response,
+        role: 'system',
+      });
+
+
+      // 此处应该先把回复的消息放入缓存
+      const historyFormSession = promptStore.historyFormSession;
+      promptStore.setHistoryFromSession(historyFormSession);
+
+
+      const sessionId = response.data.session_id;
+      await promptStore.setSessionId(sessionId);
+    }
+
+
+  } else if (message.value.trim()) {
 
     if (globalProperties && typeof globalProperties.$setSystemPrompt === 'function') {
       globalProperties.$setSystemPrompt(promptStore.sharedPrompt);
@@ -300,7 +368,7 @@ const SherlockHolmes: CharacterPrompt = {
       </div>
     </template>
     <template v-else>
-      <ChatBox :show="isExpanded"/>
+      <ChatBox :show="isExpanded" :message-list="messageList" ref="chatBoxRef"/>
     </template>
 
     <div

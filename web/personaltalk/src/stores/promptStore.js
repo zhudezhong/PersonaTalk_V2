@@ -62,12 +62,14 @@ export const usePromptStore = defineStore('prompt', {
     },
 
     async setSessionId(sessionId) {
+      console.log('sessionId', sessionId);
       this.sessionId = sessionId; // 先更新 sessionId 状态
       try {
         // 调用接口获取对应会话记录
         const history = await getHistoryFromSession(sessionId);
 
-        this.setHistoryFromSession(history.data.chat_records);
+        console.log(history);
+        this.setHistoryFromSession(history.data?.chat_records);
       } catch (error) {
         console.error('获取会话记录失败：', error);
         // 失败时清除旧记录，避免数据不一致
@@ -80,6 +82,7 @@ export const usePromptStore = defineStore('prompt', {
     clearSessionId() {
       this.sessionId = null;
       localStorage.removeItem(STORAGE_KEYS.sessionId);
+      this.clearHistoryFormSession()
     },
 
     // 避免与 state 中的 historyFormSession 冲突

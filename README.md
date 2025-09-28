@@ -405,7 +405,7 @@ poetry run mypy src/
 ## 📞 联系方式
 
 - 项目维护者: 朱德中 宗灵恩 滕柳明
-- 项目链接: [https://github.com/yourusername/PersonaTalk](https://github.com/yourusername/PersonaTalk)
+- 项目链接: [https://github.com/MECREATOR/PersonaTalk](https://github.com/MECREATOR/PersonaTalk)
 
 ---
 

@@ -129,13 +129,14 @@ async def chat_completions(
         
         # 3. 构建消息列表
         messages = []
+        if request.system_prompt:
+            system_prompt = request.system_prompt
+        # 添加系统提示词
+        messages.append(ChatMessage(role=ChatRole.SYSTEM.value, content=system_prompt))
         
         # 添加历史记录（按时间顺序）
         for chat in history_chats:
             messages.append(ChatMessage(role=chat.role.value, content=chat.content))
-        
-        # 添加系统提示词
-        messages.append(ChatMessage(role=ChatRole.SYSTEM.value, content=system_prompt))
 
         # 添加当前用户消息
         messages.append(ChatMessage(role=ChatRole.USER.value, content=request.message))

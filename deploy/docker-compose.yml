@@ -50,20 +50,11 @@ services:
       - TTS_MODEL=${TTS_MODEL:-tts}
       - MODEL_SERVICE_TYPE=${MODEL_SERVICE_TYPE:-qiniu}
       
-      # 数据库连接池配置
-      - DB_POOL_SIZE=5
-      - DB_MAX_OVERFLOW=10
-      - DB_POOL_TIMEOUT=30
-      - DB_POOL_RECYCLE=3600
-      - DB_ECHO=false
-      
       # 应用配置
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
       
     volumes:
-      # 日志持久化
-      - backend_logs:/app/logs
       # 音频文件存储
       - audio_files:/app/audio
     depends_on:
@@ -90,8 +81,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - VITE_API_BASE_URL=http://backend:8888
-      - VITE_WS_URL=ws://backend:8888/ws
+      - VITE_API_BASE_URL=/api
+      - VITE_WS_URL=/ws
     depends_on:
       backend:
         condition: service_healthy
@@ -111,37 +102,17 @@ services:
     container_name: personatalk-nginx
     ports:
       - "80:80"
-      - "443:443"
+      - "8003:8003"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - nginx_logs:/var/log/nginx
     depends_on:
       - web
       - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost"]
       interval: 30s
       timeout: 10s
-      retries: 3
-    networks:
-      - personatalk-network
-
-  # Redis 缓存服务（可选，为未来扩展准备）
-  redis:
-    image: redis:7-alpine
-    container_name: personatalk-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --requirepass redis123
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 5s
       retries: 3
     networks:
       - personatalk-network
@@ -150,19 +121,10 @@ services:
 volumes:
   mysql_data:
     driver: local
-  redis_data:
-    driver: local
-  backend_logs:
-    driver: local
   audio_files:
-    driver: local
-  nginx_logs:
     driver: local
 
 # 网络配置
 networks:
   personatalk-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

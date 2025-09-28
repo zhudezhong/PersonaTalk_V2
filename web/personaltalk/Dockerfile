@@ -1,23 +1,54 @@
-# Dockerfile
+# 多阶段构建 Dockerfile
 
-# 第一步：设置基础环境
-FROM node:22-alpine AS base
+# 构建阶段
+FROM node:18-alpine AS builder
 WORKDIR /app
 
-# 先复制 package.json 和 package-lock.json
+# 复制 package 文件
 COPY package*.json ./
 
-
-# 阶段一：生产环境构建
-FROM base AS production
+# 安装依赖
 RUN npm ci --only=production && npm cache clean --force
 
-
-# 阶段二：开发环境构建
-FROM base AS development
-RUN npm ci  # 安装所有依赖
-# 或者 RUN npm install（仅当你想允许更新 lock 文件时）
-
-# 然后继续复制源码、启动命令等...
+# 复制源代码
 COPY . .
+
+# 构建应用
+RUN npm run build
+
+# 生产环境阶段
+FROM node:18-alpine AS production
+WORKDIR /app
+
+# 复制构建产物和必要文件
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+
+# 安装 serve 用于服务静态文件
+RUN npm install -g serve
+
+# 暴露端口
+EXPOSE 3000
+
+# 启动命令
+CMD ["serve", "-s", "dist", "-l", "3000"]
+
+# 开发环境阶段
+FROM node:18-alpine AS development
+WORKDIR /app
+
+# 复制 package 文件
+COPY package*.json ./
+
+# 安装所有依赖（包括开发依赖）
+RUN npm ci
+
+# 复制源代码
+COPY . .
+
+# 暴露端口
+EXPOSE 3000
+
+# 开发启动命令
 CMD ["npm", "run", "dev"]

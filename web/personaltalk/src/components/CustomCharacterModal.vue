@@ -228,26 +228,26 @@ watch(() => props.visible, (newVal) => {
                     </option>
                   </select>
 
-                  <!-- 音色试听列表 -->
-                  <div class="voice-preview-list">
-                    <div
-                      v-for="(item, index) in props.voiceOptions"
-                      :key="item.voice_type"
-                      class="voice-preview-item"
-                    >
-                      <span class="voice-name">{{ item.voice_name }}</span>
-                      <button
-                        class="play-btn"
-                        @click="playAudio(index, item.url)"
-                        :class="{ 'playing': playingIndex === index }"
-                        aria-label="播放音频"
-                      >
-                        <i class="icon">
-                          {{ playingIndex === index ? '⏸' : '▶' }}
-                        </i>
-                      </button>
-                    </div>
-                  </div>
+<!--                  &lt;!&ndash; 音色试听列表 &ndash;&gt;-->
+<!--                  <div class="voice-preview-list">-->
+<!--                    <div-->
+<!--                      v-for="(item, index) in props.voiceOptions"-->
+<!--                      :key="item.voice_type"-->
+<!--                      class="voice-preview-item"-->
+<!--                    >-->
+<!--                      <span class="voice-name">{{ item.voice_name }}</span>-->
+<!--                      <button-->
+<!--                        class="play-btn"-->
+<!--                        @click="playAudio(index, item.url)"-->
+<!--                        :class="{ 'playing': playingIndex === index }"-->
+<!--                        aria-label="播放音频"-->
+<!--                      >-->
+<!--                        <i class="icon">-->
+<!--                          {{ playingIndex === index ? '⏸' : '▶' }}-->
+<!--                        </i>-->
+<!--                      </button>-->
+<!--                    </div>-->
+<!--                  </div>-->
                 </div>
               </div>
             </div>

@@ -1,11 +1,9 @@
 <template>
   <div class="speech-container">
-
     <!-- 实时识别内容显示区 -->
     <div class="realtime-box" v-show="realtimeTranscript">
       <p class="realtime-text">{{ realtimeTranscript }}</p>
     </div>
-
 
     <div class="btn-group">
       <button
@@ -14,10 +12,8 @@
         :title="[isRecognizing ? '静音' : '开麦' ]"
         :class="[isRecognizing ? 'start-btn' : 'stop-btn' ]"
       >
-        <!-- {{ isRecognizing ? '开启ing' : '静音ing' }}-->
         <i style="font-size: 18px" v-if="isRecognizing" class="iconfont icon-maikefeng"></i>
         <i style="font-size: 18px" v-else class="iconfont icon-mic-off"></i>
-
       </button>
       <button
         class="hang-up"
@@ -25,10 +21,7 @@
         @click="handleHangUp"
       >
         <i class="iconfont icon-guaduan"></i>
-
-
       </button>
-
       <button title="复制模型prompt"
               class="export-btn"
               @click="handleExportPrompt"
@@ -36,7 +29,6 @@
         <i class="iconfont icon-daochu"></i>
       </button>
     </div>
-
   </div>
 </template>
 
@@ -60,6 +52,8 @@ let currentSessionTranscript = ''; // 当前会话完整内容
 let lastFinalSegment = ''; // 上一段最终识别内容（用于去重）
 const PAUSE_DETECTION_TIMEOUT = 1500;
 let pauseTimer = null;
+let wasRecognizingBeforeAudio = false; // 记录播放音频前的识别状态
+const audioInstance = ref(null); // 组件级音频实例引用（关键：用于销毁时访问）
 
 // 初始化识别实例
 const initRecognition = () => {
@@ -75,6 +69,23 @@ const initRecognition = () => {
   instance.lang = 'zh-CN';
   instance.maxAlternatives = 1;
   return instance;
+};
+
+// 音频销毁工具函数（统一清理逻辑，避免内存泄漏）
+const destroyAudio = () => {
+  if (audioInstance.value) {
+    // 1. 强制停止播放（无论当前是否在播放/缓冲）
+    audioInstance.value.pause();
+    // 2. 清空音频源（切断与base64资源的链接）
+    audioInstance.value.src = '';
+    // 3. 卸载音频数据（部分浏览器支持，进一步释放内存）
+    audioInstance.value.removeAttribute('src');
+    // 4. 解除所有事件监听（避免残留回调导致内存泄漏）
+    audioInstance.value.onended = null;
+    audioInstance.value.onerror = null;
+    // 5. 清空引用（让GC回收实例）
+    audioInstance.value = null;
+  }
 };
 
 // 启动识别
@@ -96,7 +107,6 @@ const startRecognition = () => {
     if (!result.isFinal) {
       realtimeTranscript.value = currentSessionTranscript + (transcript ? ` ${transcript}` : '');
       clearTimeout(pauseTimer); // 有新输入，重置停顿计时器
-      // statusMsg.value = '正在识别...';
       return;
     }
 
@@ -122,9 +132,10 @@ const startRecognition = () => {
             const requestData = {
               session_id: session_id,
               message: finalResult.value,
-              // system_prompt: promptStore.systemPrompt, // 从 store 中获取 system_prompt
+              system_prompt: promptStore.systemPrompt,
             };
 
+            console.log(promptStore.systemPrompt);
             console.log('requestData', requestData)
 
             eventBus.emit('question-message', {
@@ -132,11 +143,9 @@ const startRecognition = () => {
               role: 'user',
             });
 
-
             const response = await sendChatRequest(requestData)
 
             if (response.code === 200) {
-
               eventBus.emit('answer-message', {
                 session_id: response.data.session_id,
                 content: response.data.response,
@@ -145,12 +154,49 @@ const startRecognition = () => {
 
               console.log('response', response);
 
-              const audio = new Audio();
-              audio.src = 'data:audio/aac;base64,' + response.data.audio_data;
-              await audio.play();
+              // 播放音频前先记录当前识别状态并停止识别
+              wasRecognizingBeforeAudio = isRecognizing.value;
+              if (wasRecognizingBeforeAudio) {
+                stopRecognition();
+              }
 
+              // 先销毁之前未播放完的音频（避免多音频叠加播放）
+              destroyAudio();
+              // 创建新音频实例并赋值给组件级引用
+              audioInstance.value = new Audio();
+              audioInstance.value.src = 'data:audio/aac;base64,' + response.data.audio_data;
 
-              isRecognizing.value = true;
+              try {
+                await audioInstance.value.play();
+              } catch (error) {
+                console.error('音频播放失败：', error);
+                // 播放失败时恢复识别状态 + 销毁当前音频实例
+                if (wasRecognizingBeforeAudio) {
+                  startRecognition();
+                }
+                destroyAudio();
+              }
+
+              // 监听播放结束事件
+              audioInstance.value.addEventListener('ended', function () {
+                console.log('音频播放结束！');
+                // 播放结束后恢复之前的识别状态 + 清理音频
+                if (wasRecognizingBeforeAudio) {
+                  startRecognition();
+                }
+                destroyAudio();
+              });
+
+              // 监听播放错误事件
+              audioInstance.value.addEventListener('error', function () {
+                console.log('音频播放错误！');
+                // 错误时恢复识别状态 + 清理音频
+                if (wasRecognizingBeforeAudio) {
+                  startRecognition();
+                }
+                destroyAudio();
+              });
+
               await promptStore.setSessionId(session_id);
 
               // 此处应该先把回复的消息放入缓存
@@ -169,6 +215,11 @@ const startRecognition = () => {
               // 发送请求时发生错误
               console.error('请求发送错误：', error.message);
             }
+            // 发生错误时恢复识别 + 清理音频
+            if (wasRecognizingBeforeAudio) {
+              startRecognition();
+            }
+            destroyAudio();
           }
 
           currentSessionTranscript = '';
@@ -185,8 +236,6 @@ const startRecognition = () => {
       pauseTimer = setTimeout(() => {
         if (isRecognizing.value) {
           finalResult.value = currentSessionTranscript;
-          // statusMsg.value = '已检测到停顿，输出最终结果（持续监听中）';
-
           currentSessionTranscript = '';
           lastFinalSegment = '';
         }
@@ -206,14 +255,12 @@ const startRecognition = () => {
         errorMsg.value = '未检测到麦克风，请连接设备后重试';
         break;
       default:
-      // statusMsg.value = `识别错误：${event.error}`;
     }
   };
 
   // 识别中断自动恢复
   recognition.onend = () => {
     if (isRecognizing.value && !errorMsg.value) {
-      // statusMsg.value = '持续监听中...';
       recognition.start();
     }
   };
@@ -235,7 +282,6 @@ const stopRecognition = () => {
     recognition.abort();
   }
   clearTimeout(pauseTimer);
-  // statusMsg.value = '已关闭语音识别';
 };
 
 // 切换识别状态
@@ -266,15 +312,16 @@ const handleExportPrompt = async () => {
   const contentToCopy = JSON.stringify(promptStore.sharedPrompt);
 
   try {
-    // 调用navigator.clipboard.writeText方法来复制内容
     await navigator.clipboard.writeText(contentToCopy);
     console.log('内容已成功复制到剪切板');
   } catch (error) {
     console.error('复制内容时出现错误:', error);
   }
 }
+
 const beginRecognize = () => {
-  isRecognizing.value = true
+  isRecognizing.value = true;
+  startRecognition();
 }
 
 eventBus.on('beginRecognize', beginRecognize);
@@ -287,16 +334,18 @@ onMounted(() => {
   }, 500);
 });
 
-
 onUnmounted(() => {
+  // 1. 先停止语音识别
   stopRecognition();
   recognition = null;
+  // 2. 强制销毁未播放完的音频（核心修改点）
+  destroyAudio();
 });
 </script>
 
 <style scoped>
 .speech-container {
-  width: 400px; /* 适当加宽以显示更多内容 */
+  width: 400px;
   padding: 20px;
   border-radius: 8px;
   display: flex;
@@ -304,7 +353,6 @@ onUnmounted(() => {
   justify-content: space-around;
   align-items: center;
 }
-
 
 .btn-group {
   display: flex;
@@ -333,7 +381,6 @@ button {
 
 .start-btn:hover {
   background: rgba(51, 51, 51, 0.5);
-
 }
 
 .stop-btn {
@@ -382,5 +429,4 @@ button:disabled {
   color: #333;
   min-height: 24px;
 }
-
 </style>

@@ -116,11 +116,12 @@ if [ $attempt -eq $max_attempts ]; then
     exit 1
 fi
 
-# 检查后端服务
+# 检查后端服务（通过 Nginx 代理）
 print_info "等待后端服务启动..."
 backend_ready=false
 for i in {1..30}; do
-    if curl -f http://localhost:8888/health &> /dev/null || curl -f http://localhost:8888 &> /dev/null; then
+    # 通过 Nginx 代理检查后端服务
+    if curl -f http://localhost/api/health &> /dev/null || docker exec backend curl -f http://localhost:8888/health &> /dev/null 2>&1; then
         print_success "后端服务已就绪"
         backend_ready=true
         break
@@ -173,7 +174,7 @@ echo ""
 echo -e "${BLUE}📋 服务访问信息：${NC}"
 echo "   🌐 完整应用: http://localhost (推荐)"
 echo "   🌐 备用端口: http://localhost:8003"
-echo "   🔧 后端 API: http://localhost/api"
+echo "   🔧 后端 API: http://localhost/api (统一通过 Nginx 代理)"
 echo "   💾 数据库:   localhost:6036 (用户: personatalk)"
 echo ""
 echo -e "${BLUE}🐳 Docker 管理命令：${NC}"

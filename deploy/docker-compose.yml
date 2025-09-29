@@ -27,8 +27,9 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     container_name: backend
-    ports:
-      - "8888:8888"
+    # 移除端口暴露，只允许通过 Nginx 代理访问，提高安全性
+    # ports:
+    #   - "8888:8888"
     environment:
       # 数据库配置
       - MYSQL_HOST=mysql

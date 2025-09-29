@@ -397,8 +397,6 @@ yarn-error.log*
 *.sqlite3
 *.db
 
-# MySQL
-*.sql
 
 # PostgreSQL
 *.dump

@@ -4,26 +4,20 @@ services:
   # MySQL 数据库服务
   mysql:
     image: mysql:8.0
-    container_name: personatalk-mysql
+    container_name: mysql-8.0
     environment:
       - MYSQL_ROOT_PASSWORD=root123
       - MYSQL_DATABASE=personatalk
       - MYSQL_USER=personatalk
       - MYSQL_PASSWORD=personatalk123
     ports:
-      - "3306:3306"
+      - "6036:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       # 初始化脚本
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     networks:
       - personatalk-network
 
@@ -32,7 +26,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: personatalk-backend
+    container_name: backend
     ports:
       - "8888:8888"
     environment:
@@ -58,15 +52,8 @@ services:
       # 音频文件存储
       - audio_files:/app/audio
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     networks:
       - personatalk-network
 
@@ -76,21 +63,12 @@ services:
       context: ../web/personaltalk
       dockerfile: Dockerfile
       target: production
-    container_name: personatalk-web
+    container_name: web
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-    depends_on:
-      backend:
-        condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     networks:
       - personatalk-network
 
@@ -107,11 +85,6 @@ services:
       - web
       - backend
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     networks:
       - personatalk-network
 

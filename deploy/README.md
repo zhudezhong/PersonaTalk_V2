@@ -1,181 +1,120 @@
-# PersonaTalk 部署指南
-
-PersonaTalk 是一个基于 AI 的角色扮演对话应用，支持文本聊天和语音合成功能。
-
-## 🏗️ 架构概览
-
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│    Nginx    │ -> │     Web     │    │   Backend   │ -> │    MySQL    │
-│  (反向代理)  │    │  (Vue前端)   │    │ (FastAPI)   │    │   (数据库)   │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-```
+# PersonaTalk 一键启动指南
 
 ## 🚀 快速启动
 
-### 前置要求
-- Docker >= 20.10
-- Docker Compose >= 2.0
+在 `deploy` 目录下运行：
 
-### 一键启动
 ```bash
-# 进入部署目录
-cd deploy
-
-# 启动所有服务
-chmod +x start.sh
 ./start.sh
 ```
 
-### 手动启动
+或者：
+
 ```bash
-# 进入部署目录
-cd deploy
-
-# 构建并启动服务
-docker-compose up --build -d
-
-# 查看服务状态
-docker-compose ps
-
-# 查看日志
-docker-compose logs -f
+bash start.sh
 ```
 
-## 🔧 服务配置
+## 📋 启动流程
 
-### 环境变量
-在 `docker-compose.yml` 中可以配置以下环境变量：
+脚本会自动完成以下操作：
 
-```yaml
-# 数据库配置
-MYSQL_DATABASE=personatalk
-MYSQL_USER=personatalk
-MYSQL_PASSWORD=personatalk123
+1. **环境检查**
+   - 检查 Docker 和 Docker Compose 是否安装
+   - 验证必要的配置文件是否存在
+   - 确认 Docker 服务是否运行
 
-# AI 模型配置
-OPENAI_API_KEY=your_api_key
-OPENAI_BASE_URL=https://openai.qiniu.com/v1
-OPENAI_MODEL=gpt-3.5-turbo
-TTS_MODEL=tts
-```
+2. **服务启动**
+   - 停止现有容器（如果有）
+   - 拉取最新的基础镜像
+   - 构建并启动所有服务
 
-### 端口映射
-- **80**: Nginx 主端口（前端应用）
-- **8003**: Nginx 备用端口
-- **3306**: MySQL 数据库
-- **8888**: 后端 API（容器内部）
-- **3000**: 前端服务（容器内部）
+3. **健康检查**
+   - 等待数据库初始化完成
+   - 检查后端服务状态
+   - 检查前端服务状态
+   - 验证 Nginx 代理是否正常
 
-## 📁 目录结构
+4. **结果展示**
+   - 显示各服务状态
+   - 提供访问地址和管理命令
+   - 可选择自动打开浏览器
 
-```
-deploy/
-├── docker-compose.yml    # Docker Compose 配置
-├── start.sh             # 启动脚本
-├── nginx/
-│   └── nginx.conf       # Nginx 配置
-└── db/
-    └── init.sql         # 数据库初始化脚本
-```
-
-## 🌐 访问地址
+## 🌐 服务访问
 
 启动成功后，可以通过以下地址访问：
 
-- **前端应用**: http://localhost
+- **完整应用**: http://localhost (推荐)
 - **备用端口**: http://localhost:8003
 - **后端 API**: http://localhost/api
-- **音频服务**: http://localhost/audio
+- **数据库**: localhost:6036 (用户: personatalk, 密码: personatalk123)
 
-## 📊 监控和调试
+## 🐳 管理命令
 
-### 查看服务状态
 ```bash
+# 查看所有服务状态
 docker-compose ps
-```
 
-### 查看日志
-```bash
-# 查看所有服务日志
+# 查看服务日志
 docker-compose logs -f
 
 # 查看特定服务日志
 docker-compose logs -f backend
 docker-compose logs -f web
 docker-compose logs -f nginx
-```
-
-### 进入容器
-```bash
-# 进入后端容器
-docker-compose exec backend bash
-
-# 进入数据库容器
-docker-compose exec mysql mysql -u personatalk -p
-```
-
-## 🛠️ 常见问题
-
-### 1. 端口冲突
-如果 80 端口被占用，可以修改 `docker-compose.yml` 中的端口映射：
-```yaml
-nginx:
-  ports:
-    - "8080:80"  # 改为 8080 端口
-    - "8003:8003"
-```
-
-### 2. 数据库连接失败
-确保 MySQL 服务已正常启动并通过健康检查：
-```bash
-docker-compose logs mysql
-```
-
-### 3. 前端页面加载失败
-检查 Web 服务是否正常构建：
-```bash
-docker-compose logs web
-```
-
-## 🔄 重启和停止
-
-### 重启服务
-```bash
-# 重启所有服务
-docker-compose restart
+docker-compose logs -f mysql
 
 # 重启特定服务
 docker-compose restart backend
-```
 
-### 停止服务
-```bash
 # 停止所有服务
 docker-compose down
 
-# 停止并删除数据卷
+# 完全清理（包括数据卷）
 docker-compose down -v
 ```
 
-## 📝 数据持久化
+## ⚠️ 故障排除
 
-- **MySQL 数据**: 存储在 `mysql_data` 数据卷中
-- **音频文件**: 存储在 `audio_files` 数据卷中
+### 常见问题
 
-数据会在容器重启后保持，除非手动删除数据卷。
+1. **端口占用**
+   - 确保端口 80、3000、6036、8888 没有被其他程序占用
+   - 可以修改 docker-compose.yml 中的端口映射
 
-## 🔐 安全建议
+2. **服务启动失败**
+   - 查看具体日志：`docker-compose logs [服务名]`
+   - 检查 Docker 内存和磁盘空间是否充足
 
-1. 修改默认的数据库密码
-2. 在生产环境中使用 HTTPS
-3. 限制数据库访问权限
-4. 定期备份数据
+3. **网页无法访问**
+   - 等待 1-2 分钟，服务可能还在初始化
+   - 检查防火墙设置
+   - 尝试访问备用端口 8003
+
+4. **数据库连接失败**
+   - 等待数据库完全启动（约 30-60 秒）
+   - 检查数据库容器日志：`docker-compose logs mysql`
+
+### 重新启动
+
+如果遇到问题，可以尝试完全重新启动：
+
+```bash
+# 停止并清理
+docker-compose down -v
+docker system prune -f
+
+# 重新启动
+./start.sh
+```
 
 ## 📞 技术支持
 
-如遇问题，请检查：
-1. Docker 和 Docker Compose 版本
-2. 端口是否被占用
-3. 服务日志中的错误信息
-4. 网络连接是否正常
+如果遇到问题，请建立issue，我们会及时解决
+
+1. 检查上述故障排除步骤
+2. 查看详细日志信息
+3. 确认系统环境符合要求
+
+---
+
+💡 **提示**: 首次启动可能需要较长时间（下载镜像、构建服务），请耐心等待。

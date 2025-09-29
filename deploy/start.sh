@@ -121,7 +121,7 @@ print_info "等待后端服务启动..."
 backend_ready=false
 for i in {1..30}; do
     # 通过 Nginx 代理检查后端服务
-    if curl -f http://localhost/api/health &> /dev/null || docker exec backend curl -f http://localhost:8888/health &> /dev/null 2>&1; then
+    if curl -f http://localhost/health &> /dev/null || docker exec backend curl -f http://localhost:8888/health &> /dev/null 2>&1; then
         print_success "后端服务已就绪"
         backend_ready=true
         break
